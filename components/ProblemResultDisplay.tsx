@@ -10,6 +10,8 @@ interface ProblemResultDisplayProps {
   userAnswer: string;
   timeTaken: number | null;
   score: number | null;
+  /** 不正解時に解説として表示するヒント */
+  hint?: string | string[];
   getResultRingColor: () => string;
 }
 
@@ -20,6 +22,7 @@ const ProblemResultDisplay: React.FC<ProblemResultDisplayProps> = ({
   userAnswer,
   timeTaken,
   score,
+  hint,
   getResultRingColor,
 }) => {
   if (!showAnswer || !problemData) return null;
@@ -86,6 +89,17 @@ const ProblemResultDisplay: React.FC<ProblemResultDisplayProps> = ({
             </p>
           </div>
         </div>
+        {/* 解説（精緻化フィードバック: 不正解時に解き方を提示。Hattie & Timperley 2007） */}
+        {!isCorrect && !isProof && hint && (
+          <div className="mt-2">
+            <p className="text-[10px] sm:text-xs text-amber-400 mb-1 font-bold">💡 解説</p>
+            <div className="text-amber-100/90 bg-amber-950/30 p-2 rounded-lg border border-amber-500/20 text-xs sm:text-sm space-y-1">
+              {(Array.isArray(hint) ? hint : [hint]).map((h, i) => (
+                <p key={i}>{h}</p>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

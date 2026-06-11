@@ -53,6 +53,7 @@ import TutorialBattle from './components/TutorialBattle';
 import SpeedDuelSetup from './components/SpeedDuelSetup';
 import SpeedDuelBoard from './components/SpeedDuelBoard';
 import NewYearPrompt from './components/NewYearPrompt';
+import ReviewMode from './components/ReviewMode';
 import type { BattleType, Problem, SpeedProblem } from './types';
 import { shuffleDeck } from './utils/shuffle';
 import { useProgressionStore, expForNextLevel, sessionCounters } from './store/progressionStore';
@@ -1625,6 +1626,13 @@ const App: React.FC = () => {
             db={db}
             user={user}
             studentProfile={studentProfile}
+          />
+        );
+
+      case 'review_mode':
+        return (
+          <ReviewMode
+            onExit={pts => { if (pts > 0) addMathPoints(pts); setGameState('main_menu'); }}
           />
         );
 
