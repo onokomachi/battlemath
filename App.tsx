@@ -24,7 +24,7 @@ import { auth, db, googleProvider } from './firebase';
 import type { ProblemCard, TurnPhase, GameState, TurnInitiative, Room, BattleMode, BattleFormat, BadgeDef, StudentProfile, ActiveBooster } from './types';
 import {
   CARD_DEFINITIONS, HAND_SIZE, DECK_SIZE,
-  INITIAL_HP, calcDamage, ADMIN_EMAILS, GAMEMASTER_PASSWORD,
+  INITIAL_HP, calcDamage, ADMIN_EMAILS,
   BADGE_DEFS, DAILY_QUEST_DEFS, WEEKLY_QUEST_DEFS, getTodayStr, getWeekStart,
   SHOP_ITEMS, TITLE_DEFS, THEME_CONFIGS, DEFAULT_SCHOOL_YEAR, getCurrentSchoolYear,
 } from './constants';
@@ -43,6 +43,7 @@ import QuestPanel from './components/QuestPanel';
 import BadgeNotification from './components/BadgeNotification';
 import LoginBonusModal, { getLoginReward } from './components/LoginBonusModal';
 import ClassBattleBoard from './components/ClassBattleBoard';
+import { checkAnswer } from './utils/answerChecker';
 import { addIncorrectToSrs, getDueCount } from './services/spacedRepetitionService';
 import { recordAttempt, getCategoryWeights } from './services/weaknessAnalysisService';
 import WeaknessPanel from './components/WeaknessPanel';
@@ -68,24 +69,7 @@ const shuffleDeck = (deck: ProblemCard[]): ProblemCard[] => {
   return arr;
 };
 
-const SUPERSCRIPT_MAP: Record<string, string> = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹', '+': '⁺', '-': '⁻', 'n': 'ⁿ', 'm': 'ᵐ' };
-
-const normalizeAnswer = (str: string): string => {
-  if (!str) return '';
-  return str
-    .replace(/[！-～]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
-    .replace(/\s+/g, '')
-    .replace(/[°度円枚個m分]/g, '')
-    .replace(/＝/g, '=')
-    .replace(/／/g, '/')
-    .replace(/（/g, '(')
-    .replace(/）/g, ')')
-    .replace(/\^([0-9+\-nm]+)/g, (_, digits: string) => digits.split('').map(c => SUPERSCRIPT_MAP[c] || c).join(''))
-    .replace(/pi/gi, 'π')
-    .replace(/0\.5x/g, '1/2x')
-    .replace(/([+-])0\.5x/g, '$11/2x')
-    .toLowerCase();
-};
+// 採点は utils/answerChecker.ts に一本化（カードバトル・スピード対戦・練習モード共通）
 
 // ============================
 // App Component
@@ -829,11 +813,12 @@ const App: React.FC = () => {
     }
   }, [earnBadge]);
 
-  const canAccessGameMaster = true;
+  // 管理画面はADMIN_EMAILSのGoogleアカウントのみ。実効的な保護は
+  // firestore.rules の isAdmin()（サーバー側）で行われ、ここはUI表示の制御。
+  const canAccessGameMaster = !!user?.email && ADMIN_EMAILS.includes(user.email);
 
   const handleOpenGameMaster = () => {
-    const pass = window.prompt('Game Master パスワードを入力:');
-    if (pass === GAMEMASTER_PASSWORD) setGameState('gamemaster');
+    if (canAccessGameMaster) setGameState('gamemaster');
   };
 
   // ============================
@@ -888,7 +873,8 @@ const App: React.FC = () => {
       setMathPoints(p => p + totalMpReward);
       setLevelUpInfo({ oldLevel, newLevel: currentLevel, mpReward: totalMpReward, newCard });
       setPlayerLevel(currentLevel);
-      saveUserToFirestore({ playerLevel: currentLevel, mathPoints: mathPointsRef.current + totalMpReward });
+      // increment で加算し、refの遅延による残高巻き戻しを防ぐ
+      saveUserToFirestore({ playerLevel: currentLevel, mathPoints: increment(totalMpReward) });
     }
     setPlayerExp(currentExp);
     saveUserToFirestore({ playerExp: currentExp });
@@ -1490,7 +1476,8 @@ const App: React.FC = () => {
     if (!problem) return;
     const baseDelay = 5000 + Math.random() * 15000; // 5-20 seconds
     speedCpuTimerRef.current = setTimeout(() => {
-      if (speedPhase !== 'answering') return;
+      // クロージャのspeedPhaseは古い値のため、refで現在のフェーズを判定する
+      if (speedPhaseRef.current !== 'answering') return;
       setSpeedOpponentAnswered(true);
       // CPU has ~65% chance of correct answer
       const cpuCorrect = Math.random() < 0.65;
@@ -1512,11 +1499,8 @@ const App: React.FC = () => {
 
     setSpeedPlayerAnswered(true);
 
-    // Check correctness
-    const correctAnswer = problem.answer.toLowerCase().replace(/\s/g, '');
-    const userAnswer = answer.toLowerCase().replace(/\s/g, '');
-    const correctAnswers = correctAnswer.split(';').map(a => a.trim());
-    const isCorrect = correctAnswers.some(ca => ca === userAnswer);
+    // Check correctness (カードバトルと同一の採点ロジック)
+    const isCorrect = checkAnswer(answer, problem.answer, { multiple: !!(problem.data as any)?.multiple });
 
     // Track for stats
     sessionAnsweredRef.current += 1;
@@ -1565,12 +1549,9 @@ const App: React.FC = () => {
   }, [speedPhase, speedPlayerAnswered, speedProblems, speedRound, handleQuestProgress, gameMode, currentRoomId, db]);
 
   const handleSpeedNextRound = useCallback(() => {
-    const format = battleFormat;
-    const required = getSpeedRequiredWins(format);
-    const newPlayerScore = speedPlayerScore + (speedRoundWinner === 'player' ? 0 : 0); // already incremented
-    const newOpponentScore = speedOpponentScore + (speedRoundWinner === 'opponent' ? 0 : 0);
+    const required = getSpeedRequiredWins(battleFormat);
 
-    // Check if match is over
+    // Check if match is over (スコアは回答時点で加算済み)
     if (required > 0) {
       // best-of-N: check if either player reached required wins
       if (speedPlayerScore >= required || speedOpponentScore >= required) {
@@ -1668,9 +1649,7 @@ const App: React.FC = () => {
     const problemData = pcPlayedCard.problem.data as any;
     const correct = pcPlayedCard.problem.type === 'proof'
       ? true
-      : problemData?.multiple
-        ? normalizeAnswer(answer).split(',').sort().join(',') === normalizeAnswer(pcPlayedCard.problem.answer).split(',').sort().join(',')
-        : normalizeAnswer(answer) === normalizeAnswer(pcPlayedCard.problem.answer);
+      : checkAnswer(answer, pcPlayedCard.problem.answer, { multiple: !!problemData?.multiple });
 
     if (correct) {
       // Update DDA stats
@@ -2146,15 +2125,16 @@ const App: React.FC = () => {
               const isCritical = Math.random() < 0.2;
               const baseCount = 3 + Math.floor(Math.random() * 2); // 3 or 4
               const packCount = Math.min(cards.length, isCritical ? baseCount + 2 : baseCount);
-              const newCards = [...cards].sort(() => Math.random() - 0.5).slice(0, packCount);
+              const newCards = shuffleDeck(cards).slice(0, packCount);
               setMathPoints(p => p - cost);
               setOwnedCardIds(prev => {
                 const next = new Set(prev);
                 newCards.forEach(c => next.add(c.id));
                 return next;
               });
+              // increment を使い、並行更新(クエスト報酬等)との残高ずれを防ぐ
               saveUserToFirestore({
-                mathPoints: mathPoints - cost,
+                mathPoints: increment(-cost),
                 ownedCardIds: arrayUnion(...newCards.map(c => c.id)),
               });
               return newCards;

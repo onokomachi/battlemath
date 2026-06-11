@@ -9,6 +9,7 @@ import ProblemControls from './ProblemControls';
 import ProblemResultDisplay from './ProblemResultDisplay';
 import { BackIcon, PencilIcon, HomeIcon, TrophyIcon, ClockIcon } from './Icons';
 import { generateSubtopicKeypadLayout } from '../utils/keypadLayoutGenerator';
+import { checkAnswer as evaluateAnswer } from '../utils/answerChecker';
 
 // Sub-views
 import AngleDiagramView from './AngleDiagramView';
@@ -209,7 +210,7 @@ const ProblemScreen: React.FC<ProblemScreenProps> = ({ category, subTopic, onBac
   const currentProblem = problems[currentIndex] || null;
   const isProof = currentProblem?.type === 'proof';
   const problemData = currentProblem?.data as any;
-  const problemHint = currentProblem?.data?.hint;
+  const problemHint = (currentProblem?.data as any)?.hint;
 
   const handleNextProblem = useCallback(() => {
     if (currentIndex < problems.length - 1) {
@@ -240,17 +241,8 @@ const ProblemScreen: React.FC<ProblemScreenProps> = ({ category, subTopic, onBac
       return;
     }
 
-    // Normalize power notation: ^N → superscript for all digits
-    const superscriptMap: Record<string, string> = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹', '+': '⁺', '-': '⁻', 'n': 'ⁿ', 'm': 'ᵐ' };
-    const normalizePowers = (s: string) => s.replace(/\^([0-9+\-nm]+)/g, (_, digits: string) => digits.split('').map(c => superscriptMap[c] || c).join(''));
-    const normalizeAnswer = (s: string) => normalizePowers(s.trim().replace(/[°度]/g, '').replace(/pi/gi, 'π').replace(/\s+/g, ''));
-    const cleanUser = normalizeAnswer(userAnswer);
-    const cleanTarget = normalizeAnswer(currentProblem.answer);
-
-    // For multiple-choice questions, compare as sorted sets
-    const isCorrect = problemData?.multiple
-      ? cleanUser.split(',').sort().join(',') === cleanTarget.split(',').sort().join(',')
-      : cleanUser === cleanTarget;
+    // バトルモードと同一の統一採点ロジック（全角入力・複数入力欄・順不同選択に対応）
+    const isCorrect = evaluateAnswer(userAnswer, currentProblem.answer, { multiple: !!problemData?.multiple });
 
     if (isCorrect) {
       setResult('correct');

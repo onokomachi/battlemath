@@ -1,13 +1,15 @@
 // BattleMath Online - Firestore Security Rules
-// エビデンスレベルA: Firebase公式セキュリティルール設計パターン
 //
 // デプロイ方法:
 //   firebase deploy --only firestore:rules
+//   （または Firebase Console → Firestore Database → ルール に貼り付けて「公開」）
 //
 // コレクション構造:
-//   /users/{uid}          - ユーザープロファイル・進捗
-//   /rooms/{roomId}       - PvPルーム
-//   /config/game          - ゲーム設定 (管理者のみ書込み)
+//   /users/{uid}            - ユーザープロファイル・進捗
+//   /rooms/{roomId}         - PvPルーム（参加者のみ更新可）
+//   /config/{docId}         - ゲーム設定・月次チャンピオン (管理者のみ書込み)
+//   /rankings/{docId}       - 月次サブトピック別ランキング
+//   /classStatsCache/{docId}- 学校対抗統計の共有キャッシュ
 
 rules_version = '2';
 
@@ -31,13 +33,56 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // PvPルーム: 認証済みユーザーが読み書き可
-    // エビデンスA: Firebase公式 - 最小権限の原則
-    // 参加者(host/guest)のみ削除可能にし、ゾンビルームの蓄積を防止
+    // PvPルーム
+    // 重要: update を「参加者のみ」に制限する。
+    // 以前は認証済みなら誰でも任意ルームのHP・勝敗を書き換え可能だった（チート可能）。
     match /rooms/{roomId} {
+
+      // 参加者（ホスト or ゲスト）か
+      function isParticipant() {
+        return request.auth.uid == resource.data.hostId
+            || request.auth.uid == resource.data.guestId;
+      }
+
+      // 待機中ルームへのゲスト参加: 自分をguestに登録する更新のみ許可
+      function isGuestJoin() {
+        return resource.data.status == 'waiting'
+            && resource.data.guestId == null
+            && request.resource.data.guestId == request.auth.uid
+            && request.resource.data.hostId == resource.data.hostId;
+      }
+
+      // ゾンビルーム掃除（第三者）: 「終了マークのみ」かつ十分に古いルームに限る。
+      // クライアントは waiting=10分 / playing=2-3分 で掃除するため、サーバー側は
+      // それより緩い下限（waiting 8分 / playing 90秒）で正当な掃除のみ通す。
+      function isStaleRoomCleanup() {
+        return request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['status', 'winnerId'])
+            && request.resource.data.status == 'finished'
+            && (
+              (resource.data.status == 'waiting'
+                && resource.data.createdAt != null
+                && resource.data.createdAt < request.time - duration.value(8, 'm'))
+              || (resource.data.status == 'playing'
+                && (
+                  (resource.data.hostLastActive != null
+                    && resource.data.hostLastActive < request.time - duration.value(90, 's'))
+                  || (resource.data.guestLastActive != null
+                    && resource.data.guestLastActive < request.time - duration.value(90, 's'))
+                ))
+            );
+      }
+
       allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null;
+
+      // 作成: 自分自身をホストとして登録する場合のみ
+      allow create: if request.auth != null
+        && request.resource.data.hostId == request.auth.uid;
+
+      allow update: if request.auth != null
+        && (isParticipant() || isGuestJoin() || isStaleRoomCleanup() || isAdmin());
+
+      // 参加者のみ削除可能にし、ゾンビルームの蓄積を防止
       allow delete: if request.auth != null
         && (resource.data.hostId == request.auth.uid
             || resource.data.guestId == request.auth.uid
@@ -51,20 +96,18 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // クラスチーム: 認証済みユーザーが読み書き可 / 管理者は削除可
-    // エビデンスB: 協力設計 × オキシトシン系（Zak 2012）
-    match /classes/{classId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null;
-      allow delete: if isAdmin();
+    // 学校対抗統計キャッシュ: 認証ユーザーが読み書き可（派生データのみ）
+    // 以前はルール未定義のため常に拒否され、開くたびに全ユーザーscanが走っていた
+    match /classStatsCache/{docId} {
+      allow read, write: if request.auth != null;
     }
 
-    // ランキング用 (月次サブトピック別): 認証ユーザーが読み書き可
+    // ランキング (月次サブトピック別): 自分のスコアのみ作成・更新可
     // ドキュメントID: {YYYY-MM}_{subtopic}_{uid}
     match /rankings/{docId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid;
       allow update: if request.auth != null
         && (resource.data.uid == request.auth.uid || isAdmin());
     }
