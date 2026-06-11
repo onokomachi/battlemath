@@ -383,6 +383,16 @@ export interface Problem {
 
 export type ProblemSet = Record<string, Problem[]>;
 
+/**
+ * スピード対戦用の問題: 出題元カードの単元・難易度を保持する。
+ * 単元は弱点分析・間隔反復(SRS)の記録に、難易度はCPUのDDAに使う。
+ * (旧形式のPvPルームには無いフィールドのため optional)
+ */
+export interface SpeedProblem extends Problem {
+  category?: string;
+  difficulty?: number;
+}
+
 // Replaces the old CardData
 export interface ProblemCard {
   id: number;

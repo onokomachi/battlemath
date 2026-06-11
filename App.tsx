@@ -44,6 +44,7 @@ import BadgeNotification from './components/BadgeNotification';
 import LoginBonusModal, { getLoginReward } from './components/LoginBonusModal';
 import ClassBattleBoard from './components/ClassBattleBoard';
 import { checkAnswer } from './utils/answerChecker';
+import { SPEED_DUEL_TIME_LIMIT_SEC, SPEED_CPU, speedCpuAccuracy } from './constants/gameBalance';
 import { addIncorrectToSrs, getDueCount } from './services/spacedRepetitionService';
 import { recordAttempt, getCategoryWeights } from './services/weaknessAnalysisService';
 import WeaknessPanel from './components/WeaknessPanel';
@@ -52,7 +53,7 @@ import TutorialBattle from './components/TutorialBattle';
 import SpeedDuelSetup from './components/SpeedDuelSetup';
 import SpeedDuelBoard from './components/SpeedDuelBoard';
 import NewYearPrompt from './components/NewYearPrompt';
-import type { BattleType, Problem } from './types';
+import type { BattleType, Problem, SpeedProblem } from './types';
 import { shuffleDeck } from './utils/shuffle';
 import { useProgressionStore, expForNextLevel, sessionCounters } from './store/progressionStore';
 
@@ -143,7 +144,7 @@ const App: React.FC = () => {
   // --- Speed Duel State ---
   const [battleType, setBattleType] = useState<BattleType>('card_battle');
   const [speedCategories, setSpeedCategories] = useState<string[]>([]);
-  const [speedProblems, setSpeedProblems] = useState<Problem[]>([]);
+  const [speedProblems, setSpeedProblems] = useState<SpeedProblem[]>([]);
   const [speedRound, setSpeedRound] = useState(1);
   const [speedTotalRounds, setSpeedTotalRounds] = useState(5);
   const [speedPlayerScore, setSpeedPlayerScore] = useState(0);
@@ -679,7 +680,7 @@ const App: React.FC = () => {
         if (data.battleType === 'speed_duel' && data.speedProblems) {
           // Speed Duel PvP: load problems from room and start
           setBattleType('speed_duel');
-          setSpeedProblems(data.speedProblems as Problem[]);
+          setSpeedProblems(data.speedProblems as SpeedProblem[]);
           setSpeedTotalRounds(data.speedTotalRounds || 5);
           setBattleFormat((data.speedFormat as BattleFormat) || 'best_of_5');
           setSpeedRound(1);
@@ -693,7 +694,7 @@ const App: React.FC = () => {
           setGameState('speed_duel');
           setTimeout(() => {
             setSpeedPhase('answering');
-            setSpeedTimeLeft(30);
+            setSpeedTimeLeft(SPEED_DUEL_TIME_LIMIT_SEC);
           }, 2000);
         } else {
           setTimeout(() => {
@@ -853,7 +854,8 @@ const App: React.FC = () => {
           base.speedTotalRounds = total;
           base.speedP1Score = 0;
           base.speedP2Score = 0;
-          base.speedProblems = problems.map(p => ({ type: p.type, data: p.data, answer: p.answer }));
+          // category/difficulty も保存（undefined不可のためnullに変換）— 相手側の学習記録・DDAに使う
+          base.speedProblems = problems.map(p => ({ type: p.type, data: p.data, answer: p.answer, category: p.category ?? null, difficulty: p.difficulty ?? null }));
           base.speedP1Answer = null;
           base.speedP2Answer = null;
           base.speedRoundWinner = null;
@@ -973,12 +975,14 @@ const App: React.FC = () => {
   // ============================
   // Speed Duel Logic
   // ============================
-  const generateSpeedProblems = useCallback((subtopics: string[], count: number): Problem[] => {
+  const generateSpeedProblems = useCallback((subtopics: string[], count: number): SpeedProblem[] => {
     // Support both subtopic names (granular) and main category names (legacy)
     const subtopicSet = new Set(subtopics);
     const eligible = CARD_DEFINITIONS.filter(c => subtopicSet.has(c.category) || subtopicSet.has(c.mainCategory));
-    const shuffled = [...eligible].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, Math.min(count, shuffled.length)).map(c => c.problem);
+    const shuffled = shuffleDeck(eligible);
+    // 単元・難易度を保持（弱点分析/SRS記録・CPUのDDAに使用）
+    return shuffled.slice(0, Math.min(count, shuffled.length))
+      .map(c => ({ ...c.problem, category: c.category, difficulty: c.difficulty }));
   }, []);
 
   const getSpeedTotalRounds = useCallback((format: BattleFormat): number => {
@@ -1025,7 +1029,7 @@ const App: React.FC = () => {
     // Countdown then start
     setTimeout(() => {
       setSpeedPhase('answering');
-      setSpeedTimeLeft(30);
+      setSpeedTimeLeft(SPEED_DUEL_TIME_LIMIT_SEC);
     }, 1500);
   }, [generateSpeedProblems, getSpeedTotalRounds]);
 
@@ -1054,19 +1058,26 @@ const App: React.FC = () => {
     return () => { if (speedTimerRef.current) clearInterval(speedTimerRef.current); };
   }, [gameState, speedPhase, speedRound]);
 
-  // Speed Duel CPU answer (simulated)
+  // Speed Duel CPU answer — DDA (動的難易度調整)
+  // プレイヤー自身の難易度別平均解答時間を基準にCPUの速度・正答率を決める
+  // (詳細は constants/gameBalance.ts を参照)
   useEffect(() => {
     if (gameState !== 'speed_duel' || speedPhase !== 'answering' || gameMode !== 'cpu') return;
-    // CPU answers after a random delay (difficulty-based)
     const problem = speedProblems[speedRound - 1];
     if (!problem) return;
-    const baseDelay = 5000 + Math.random() * 15000; // 5-20 seconds
+    const difficulty = problem.difficulty || 3;
+    const stats = userLevelStats[difficulty];
+    const baseTime = stats && stats.count >= SPEED_CPU.MIN_SAMPLE_COUNT
+      ? stats.avgTime
+      : difficulty * SPEED_CPU.FALLBACK_MS_PER_DIFFICULTY;
+    const jitter = SPEED_CPU.DELAY_JITTER_MIN
+      + Math.random() * (SPEED_CPU.DELAY_JITTER_MAX - SPEED_CPU.DELAY_JITTER_MIN);
+    const baseDelay = Math.max(SPEED_CPU.MIN_DELAY_MS, Math.min(SPEED_CPU.MAX_DELAY_MS, baseTime * jitter));
     speedCpuTimerRef.current = setTimeout(() => {
       // クロージャのspeedPhaseは古い値のため、refで現在のフェーズを判定する
       if (speedPhaseRef.current !== 'answering') return;
       setSpeedOpponentAnswered(true);
-      // CPU has ~65% chance of correct answer
-      const cpuCorrect = Math.random() < 0.65;
+      const cpuCorrect = Math.random() < speedCpuAccuracy(difficulty);
       if (cpuCorrect && !speedPlayerAnswered) {
         // CPU wins this round
         if (speedTimerRef.current) clearInterval(speedTimerRef.current);
@@ -1076,7 +1087,7 @@ const App: React.FC = () => {
       }
     }, baseDelay);
     return () => { if (speedCpuTimerRef.current) clearTimeout(speedCpuTimerRef.current); };
-  }, [gameState, speedPhase, speedRound, gameMode, speedProblems]);
+  }, [gameState, speedPhase, speedRound, gameMode, speedProblems, userLevelStats]);
 
   const handleSpeedAnswer = useCallback(async (answer: string) => {
     if (speedPhase !== 'answering' || speedPlayerAnswered) return;
@@ -1088,11 +1099,20 @@ const App: React.FC = () => {
     // Check correctness (カードバトルと同一の採点ロジック)
     const isCorrect = checkAnswer(answer, problem.answer, { multiple: !!(problem.data as any)?.multiple });
 
-    // Track for stats
-    sessionCounters.answered += 1;
-    if (isCorrect) {
-      sessionCounters.correct += 1;
-      handleQuestProgress('correct');
+    // ゲーミフィケーション統合: チェイン・バッジ・クエスト・セッション統計
+    recordAnswerOutcome(isCorrect);
+    // 学習記録: 弱点分析と間隔反復(SRS)はカードバトル・練習モードと同様に蓄積する
+    // （旧形式PvPルームの問題には category が無いためガード）
+    if (problem.category) {
+      recordAttempt(problem.category, isCorrect);
+      if (!isCorrect) {
+        addIncorrectToSrs(
+          problem.category,
+          String((problem.data as any)?.question || '').slice(0, 50),
+          problem.answer,
+          problem.type
+        );
+      }
     }
 
     if (gameMode === 'pvp' && currentRoomId && db) {
@@ -1132,7 +1152,7 @@ const App: React.FC = () => {
       setSpeedPhase('round_result');
     }
     // If wrong, player can't retry - wait for CPU or timeout
-  }, [speedPhase, speedPlayerAnswered, speedProblems, speedRound, handleQuestProgress, gameMode, currentRoomId, db]);
+  }, [speedPhase, speedPlayerAnswered, speedProblems, speedRound, recordAnswerOutcome, gameMode, currentRoomId, db]);
 
   const handleSpeedNextRound = useCallback(() => {
     const required = getSpeedRequiredWins(battleFormat);
@@ -1164,7 +1184,7 @@ const App: React.FC = () => {
     setSpeedPhase('countdown');
     setTimeout(() => {
       setSpeedPhase('answering');
-      setSpeedTimeLeft(30);
+      setSpeedTimeLeft(SPEED_DUEL_TIME_LIMIT_SEC);
     }, 1500);
   }, [battleFormat, speedPlayerScore, speedOpponentScore, speedRound, speedTotalRounds, getSpeedRequiredWins, speedRoundWinner]);
 
