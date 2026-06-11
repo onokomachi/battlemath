@@ -42,3 +42,15 @@ export const speedCpuAccuracy = (difficulty: number): number => {
   const acc = 0.92 - 0.08 * difficulty;
   return Math.min(0.85, Math.max(0.5, acc));
 };
+
+/**
+ * スピード対戦の対戦報酬（旧実装は報酬なし＝報酬ループから漏れていた）
+ * カードバトル（勝利500exp/300MP）より短時間で終わるため約6割に設定。
+ * 敗北にも少額の経験値を与え「挑戦自体が前進」にする
+ * （目標設定理論: Locke & Latham 1990）
+ */
+export const SPEED_DUEL_REWARDS = {
+  win: { exp: 300, mp: 150 },
+  draw: { exp: 150, mp: 0 },
+  lose: { exp: 75, mp: 0 },
+} as const;

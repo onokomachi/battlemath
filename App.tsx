@@ -44,7 +44,10 @@ import BadgeNotification from './components/BadgeNotification';
 import LoginBonusModal, { getLoginReward } from './components/LoginBonusModal';
 import ClassBattleBoard from './components/ClassBattleBoard';
 import { checkAnswer } from './utils/answerChecker';
-import { SPEED_DUEL_TIME_LIMIT_SEC, SPEED_CPU, speedCpuAccuracy } from './constants/gameBalance';
+import {
+  SPEED_DUEL_TIME_LIMIT_SEC, SPEED_DUEL_COUNTDOWN_MS, SPEED_CPU,
+  speedCpuAccuracy, SPEED_DUEL_REWARDS,
+} from './constants/gameBalance';
 import { addIncorrectToSrs, getDueCount } from './services/spacedRepetitionService';
 import { recordAttempt, getCategoryWeights } from './services/weaknessAnalysisService';
 import WeaknessPanel from './components/WeaknessPanel';
@@ -59,6 +62,35 @@ import { shuffleDeck } from './utils/shuffle';
 import { useProgressionStore, expForNextLevel, sessionCounters } from './store/progressionStore';
 
 // 採点は utils/answerChecker.ts に一本化（カードバトル・スピード対戦・練習モード共通）
+
+// ============================
+// PvP再接続: 進行中の対戦情報をsessionStorageに保持し、
+// 誤リロード後に同じルームへ復帰できるようにする
+// ============================
+interface SavedPvpSession {
+  roomId: string;
+  isHost: boolean;
+  battleType: BattleType;
+  deckIds: number[];
+  savedAt: number;
+}
+
+const ACTIVE_PVP_SESSION_KEY = 'bm_active_pvp_session';
+/** 再接続を許可する経過時間の上限（これを超えた保存情報は破棄） */
+const PVP_RESUME_MAX_AGE_MS = 10 * 60 * 1000;
+
+const saveActivePvpSession = (s: SavedPvpSession): void => {
+  try { sessionStorage.setItem(ACTIVE_PVP_SESSION_KEY, JSON.stringify(s)); } catch {}
+};
+const loadActivePvpSession = (): SavedPvpSession | null => {
+  try {
+    const raw = sessionStorage.getItem(ACTIVE_PVP_SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+};
+const clearActivePvpSession = (): void => {
+  try { sessionStorage.removeItem(ACTIVE_PVP_SESSION_KEY); } catch {}
+};
 // シャッフルは utils/shuffle.ts (Fisher-Yates)、進捗・ゲーミフィケーション状態は
 // store/progressionStore.ts (Zustand) に一本化
 
@@ -532,6 +564,7 @@ const App: React.FC = () => {
   // エビデンスA: Firebase公式 - ドキュメントライフサイクル管理
   // ルーム離脱時にFirestoreステータスを更新し、ゾンビルームを防止
   const leaveRoom = useCallback(async (roomId: string | null, wasHost: boolean) => {
+    clearActivePvpSession();
     if (!roomId || !db) return;
     try {
       const roomRef = doc(db, 'rooms', roomId);
@@ -558,6 +591,7 @@ const App: React.FC = () => {
       setCurrentRoomId(null);
       setIsHost(false);
       setOpponentDisconnected(false);
+      clearActivePvpSession();
     }
     processedMatchIdRef.current = null;
     setWinner(null);
@@ -570,64 +604,25 @@ const App: React.FC = () => {
     setTurnPhase('selecting_card');
   }, []);
 
-  // ブラウザ閉じ/タブ閉じ/iPad切替時のルームクリーンアップ
-  // pagehide: iOS Safari で beforeunload より信頼性が高い
-  // visibilitychange: iPad のホーム画面切替やアプリ切替を検知
+  // タブ切替/アプリ切替時のハートビート維持
+  // 注意: 以前はページ離脱で即座にルームを終了（=即敗北）させていたが、
+  // 誤リロードでも負けになり再接続も不可能だったため廃止。
+  // 離脱の判定は既存のハートビート不活性検知（60秒で切断表示、
+  // 120秒で自動終了）に委ね、その間の再接続を可能にする。
   useEffect(() => {
-    const markRoomFinished = () => {
+    const sendHeartbeat = () => {
       const rid = currentRoomIdRef.current;
       if (!rid || !db) return;
-      const roomRef = doc(db, 'rooms', rid);
-      updateDoc(roomRef, {
-        status: 'finished',
-        winnerId: isHostRef.current ? 'guest' : 'host',
-      }).catch(() => {});
+      const field = isHostRef.current ? 'hostLastActive' : 'guestLastActive';
+      updateDoc(doc(db, 'rooms', rid), { [field]: serverTimestamp() }).catch(() => {});
     };
 
-    // pagehide は iOS Safari でページ離脱時に発火する（beforeunloadより信頼性高）
-    const handlePageHide = (e: PageTransitionEvent) => {
-      // persisted=true (bfcache) の場合は戻ってくる可能性があるのでスキップ
-      if (!e.persisted) {
-        markRoomFinished();
-      }
-    };
+    // hidden/visible どちらでも生存信号を送る（iPadのアプリ切替対応）
+    const handleVisibilityChange = () => sendHeartbeat();
 
-    // visibilitychange で iPad のアプリ切替/ホーム画面移動を検知
-    // hidden になってから一定時間戻らない場合のための保険タイマー
-    let hiddenTimer: NodeJS.Timeout | null = null;
-    const handleVisibilityChange = () => {
-      const rid = currentRoomIdRef.current;
-      if (!rid || !db) return;
-      if (document.hidden) {
-        // hidden になったら即座に lastActive を更新（最後の生存信号）
-        const field = isHostRef.current ? 'hostLastActive' : 'guestLastActive';
-        updateDoc(doc(db, 'rooms', rid), { [field]: serverTimestamp() }).catch(() => {});
-        // 60秒後もまだ hidden ならルームを終了（長時間離脱対策）
-        hiddenTimer = setTimeout(() => {
-          if (document.hidden && currentRoomIdRef.current === rid) {
-            markRoomFinished();
-          }
-        }, 60000);
-      } else {
-        // visible に戻ったらタイマーをキャンセル
-        if (hiddenTimer) { clearTimeout(hiddenTimer); hiddenTimer = null; }
-        // 復帰時にハートビートを即時送信
-        const field = isHostRef.current ? 'hostLastActive' : 'guestLastActive';
-        updateDoc(doc(db, 'rooms', rid), { [field]: serverTimestamp() }).catch(() => {});
-      }
-    };
-
-    // beforeunload も残す（デスクトップブラウザ用）
-    const handleBeforeUnload = () => markRoomFinished();
-
-    window.addEventListener('pagehide', handlePageHide);
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
-      window.removeEventListener('pagehide', handlePageHide);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      if (hiddenTimer) clearTimeout(hiddenTimer);
     };
   }, []);
 
@@ -691,6 +686,7 @@ const App: React.FC = () => {
           setSpeedOpponentAnswered(false);
           setSpeedRoundWinner(null);
           setSpeedGameResult(null);
+          speedRewardGrantedRef.current = false;
           setSpeedPhase('countdown');
           setGameState('speed_duel');
           setTimeout(() => {
@@ -881,6 +877,14 @@ const App: React.FC = () => {
       });
       setIsHost(result === 'host');
       setCurrentRoomId(roomId);
+      // 再接続用に対戦情報を保存（誤リロード対策）
+      saveActivePvpSession({
+        roomId,
+        isHost: result === 'host',
+        battleType: battleType || 'card_battle',
+        deckIds: pvpDeckRef.current.map(c => c.id),
+        savedAt: Date.now(),
+      });
     } catch (e: any) {
       const msg = e?.message || '';
       if (msg === 'ROOM_FULL') {
@@ -897,6 +901,7 @@ const App: React.FC = () => {
   };
 
   useEffect(() => { if (currentRoomId) listenToRoom(currentRoomId); }, [currentRoomId]);
+
 
   // ハートビートパターン - 30秒ごとにlastActiveを更新（切断を素早く検知）
   useEffect(() => {
@@ -1024,6 +1029,7 @@ const App: React.FC = () => {
     setSpeedOpponentAnswered(false);
     setSpeedRoundWinner(null);
     setSpeedGameResult(null);
+    speedRewardGrantedRef.current = false;
     setSpeedPhase('countdown');
     setGameState('speed_duel');
 
@@ -1158,23 +1164,49 @@ const App: React.FC = () => {
   const handleSpeedNextRound = useCallback(() => {
     const required = getSpeedRequiredWins(battleFormat);
 
+    // PvP: ルームを終了状態にする（両クライアントが同じ値を書くため冪等）
+    const finishPvpMatch = (result: 'win' | 'lose' | 'draw') => {
+      if (gameMode !== 'pvp' || !currentRoomId || !db) return;
+      const myRole = isHostRef.current ? 'host' : 'guest';
+      const oppRole = isHostRef.current ? 'guest' : 'host';
+      const winnerId = result === 'draw' ? 'draw' : result === 'win' ? myRole : oppRole;
+      updateDoc(doc(db, 'rooms', currentRoomId), { status: 'finished', winnerId }).catch(() => {});
+      clearActivePvpSession();
+    };
+
     // Check if match is over (スコアは回答時点で加算済み)
     if (required > 0) {
       // best-of-N: check if either player reached required wins
       if (speedPlayerScore >= required || speedOpponentScore >= required) {
-        setSpeedGameResult(speedPlayerScore >= required ? 'win' : 'lose');
+        const result = speedPlayerScore >= required ? 'win' : 'lose';
+        setSpeedGameResult(result);
         setSpeedPhase('match_over');
+        finishPvpMatch(result);
         return;
       }
     }
 
     // Check if all rounds played (master_duel or remaining rounds exhausted)
     if (speedRound >= speedTotalRounds) {
-      if (speedPlayerScore > speedOpponentScore) setSpeedGameResult('win');
-      else if (speedPlayerScore < speedOpponentScore) setSpeedGameResult('lose');
-      else setSpeedGameResult('draw');
+      const result = speedPlayerScore > speedOpponentScore ? 'win'
+        : speedPlayerScore < speedOpponentScore ? 'lose' : 'draw';
+      setSpeedGameResult(result);
       setSpeedPhase('match_over');
+      finishPvpMatch(result);
       return;
+    }
+
+    // PvP: 前ラウンドの解答・勝者をクリアして次ラウンドへ進める。
+    // 重要: これを行わないと speedRoundWinner がルームに残り続け、
+    // 2ラウンド目以降の解答トランザクションが常に早期returnして
+    // 誰も得点できなくなる（旧実装のバグ）。speedRound の保存は再接続にも使う
+    if (gameMode === 'pvp' && currentRoomId && db) {
+      updateDoc(doc(db, 'rooms', currentRoomId), {
+        speedRound: speedRound + 1,
+        speedRoundWinner: null,
+        speedP1Answer: null,
+        speedP2Answer: null,
+      }).catch(() => {});
     }
 
     // Next round
@@ -1186,8 +1218,30 @@ const App: React.FC = () => {
     setTimeout(() => {
       setSpeedPhase('answering');
       setSpeedTimeLeft(SPEED_DUEL_TIME_LIMIT_SEC);
-    }, 1500);
-  }, [battleFormat, speedPlayerScore, speedOpponentScore, speedRound, speedTotalRounds, getSpeedRequiredWins, speedRoundWinner]);
+    }, SPEED_DUEL_COUNTDOWN_MS);
+  }, [battleFormat, speedPlayerScore, speedOpponentScore, speedRound, speedTotalRounds, getSpeedRequiredWins, gameMode, currentRoomId]);
+
+  // ============================
+  // スピード対戦の対戦報酬（マッチ終了時に1回だけ付与）
+  // 旧実装ではスピード対戦に報酬がなく、報酬ループから漏れていた
+  // ============================
+  const speedRewardGrantedRef = useRef(false);
+  useEffect(() => {
+    if (speedPhase !== 'match_over' || !speedGameResult) return;
+    if (speedRewardGrantedRef.current) return;
+    speedRewardGrantedRef.current = true;
+    const reward = SPEED_DUEL_REWARDS[speedGameResult];
+    addExp(reward.exp);
+    if (reward.mp > 0) addBoostedMp(reward.mp);
+    if (speedGameResult === 'win') {
+      incrementTotalWins();
+      saveUserToFirestore({ totalWins: increment(1), totalMatches: increment(1) });
+    } else {
+      saveUserToFirestore({ totalMatches: increment(1) });
+    }
+    if (gameMode === 'pvp') handleQuestProgress('pvp_match');
+    flushSessionData().catch(() => {});
+  }, [speedPhase, speedGameResult, gameMode, addExp, addBoostedMp, incrementTotalWins, saveUserToFirestore, handleQuestProgress, flushSessionData]);
 
   // ============================
   // Auto-draw helper
@@ -1243,6 +1297,95 @@ const App: React.FC = () => {
   const addLog = useCallback((msg: string) => {
     setGameLog(prev => [...prev.slice(-10), msg]);
   }, []);
+
+  // ============================
+  // PvP再接続
+  // 誤リロード後、保存済みセッションのルームがまだ進行中なら復帰を提案する
+  // ============================
+  const [resumeCandidate, setResumeCandidate] = useState<SavedPvpSession | null>(null);
+  const resumeCheckedRef = useRef(false);
+
+  useEffect(() => {
+    if (!user || !db || resumeCheckedRef.current) return;
+    resumeCheckedRef.current = true;
+    const saved = loadActivePvpSession();
+    if (!saved) return;
+    if (Date.now() - saved.savedAt > PVP_RESUME_MAX_AGE_MS) {
+      clearActivePvpSession();
+      return;
+    }
+    getDoc(doc(db, 'rooms', saved.roomId)).then(snap => {
+      if (!snap.exists()) { clearActivePvpSession(); return; }
+      const room = snap.data() as Room;
+      const isParticipant = room.hostId === user.uid || room.guestId === user.uid;
+      if (room.status !== 'playing' || !isParticipant) { clearActivePvpSession(); return; }
+      setResumeCandidate(saved);
+    }).catch(() => {});
+  }, [user]);
+
+  const performResume = useCallback(async (saved: SavedPvpSession) => {
+    setResumeCandidate(null);
+    if (!db) return;
+    try {
+      const snap = await getDoc(doc(db, 'rooms', saved.roomId));
+      if (!snap.exists()) { clearActivePvpSession(); return; }
+      const room = snap.data() as Room;
+      if (room.status !== 'playing') { clearActivePvpSession(); return; }
+
+      // isHostRef は startGame/リスナーが即座に参照するため、stateより先にrefを更新する
+      isHostRef.current = saved.isHost;
+      setIsHost(saved.isHost);
+      setGameMode('pvp');
+      processedMatchIdRef.current = null;
+
+      if (room.battleType === 'speed_duel' && room.speedProblems) {
+        setBattleType('speed_duel');
+        setSpeedProblems(room.speedProblems as SpeedProblem[]);
+        setSpeedTotalRounds(room.speedTotalRounds || 5);
+        setBattleFormat((room.speedFormat as BattleFormat) || 'best_of_5');
+        setSpeedRound(room.speedRound || 1);
+        setSpeedPlayerScore(saved.isHost ? (room.speedP1Score || 0) : (room.speedP2Score || 0));
+        setSpeedOpponentScore(saved.isHost ? (room.speedP2Score || 0) : (room.speedP1Score || 0));
+        setSpeedPlayerAnswered(!!(saved.isHost ? room.speedP1Answer : room.speedP2Answer));
+        setSpeedOpponentAnswered(!!(saved.isHost ? room.speedP2Answer : room.speedP1Answer));
+        setSpeedGameResult(null);
+        speedRewardGrantedRef.current = false;
+        if (room.speedRoundWinner) {
+          const mine = room.speedRoundWinner !== 'draw'
+            && ((room.speedRoundWinner === 'host') === saved.isHost);
+          setSpeedRoundWinner(room.speedRoundWinner === 'draw' ? 'draw' : mine ? 'player' : 'opponent');
+          setSpeedPhase('round_result');
+        } else {
+          setSpeedRoundWinner(null);
+          setSpeedPhase('answering');
+          setSpeedTimeLeft(SPEED_DUEL_TIME_LIMIT_SEC);
+        }
+        setCurrentRoomId(saved.roomId);
+        setGameState('speed_duel');
+      } else {
+        // カードバトル: HPはルームから復元、手札は引き直し
+        setBattleType('card_battle');
+        const deck = saved.deckIds
+          .map(id => CARD_DEFINITIONS.find(c => c.id === id))
+          .filter((c): c is ProblemCard => !!c);
+        const deckToUse = deck.length >= HAND_SIZE ? deck : shuffleDeck([...CARD_DEFINITIONS]).slice(0, DECK_SIZE);
+        pvpDeckRef.current = deckToUse;
+        startGame(deckToUse, false, room);
+        setCurrentRoomId(saved.roomId);
+        setGameState('in_game');
+        addLog('🔌 対戦に再接続しました（手札は引き直しです）');
+      }
+    } catch (e) {
+      console.error('PvP resume error:', e);
+      clearActivePvpSession();
+    }
+  }, [startGame, addLog]);
+
+  const dismissResume = useCallback(async (saved: SavedPvpSession) => {
+    setResumeCandidate(null);
+    // 破棄 = 投了扱い（相手の勝利でルームを終了）
+    await leaveRoom(saved.roomId, saved.isHost);
+  }, [leaveRoom]);
 
   // ============================
   // Player Answer Handler
@@ -1895,6 +2038,32 @@ const App: React.FC = () => {
             onEquipTheme={setEquippedTheme}
             onClose={() => setShowItemShop(false)}
           />
+        )}
+        {/* PvP再接続プロンプト */}
+        {resumeCandidate && (gameState === 'main_menu' || gameState === 'login_screen') && (
+          <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+            <div className="max-w-sm w-full bg-slate-900 border border-cyan-700/50 rounded-2xl p-6 text-center">
+              <p className="text-3xl mb-3">🔌</p>
+              <h2 className="text-lg font-bold text-white mb-2">進行中の対戦があります</h2>
+              <p className="text-xs text-gray-400 mb-6">
+                {resumeCandidate.battleType === 'speed_duel' ? 'スピード対戦' : 'カードバトル'}の途中で切断されました。再接続しますか？
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => performResume(resumeCandidate)}
+                  className="flex-1 btn-tactical py-3 rounded-xl font-bold"
+                >
+                  再接続する
+                </button>
+                <button
+                  onClick={() => dismissResume(resumeCandidate)}
+                  className="flex-1 border border-gray-600 text-gray-400 hover:text-white py-3 rounded-xl font-bold transition-colors"
+                >
+                  破棄（投了）
+                </button>
+              </div>
+            </div>
+          </div>
         )}
         {showNewYearPrompt && studentProfile && (
           <NewYearPrompt
