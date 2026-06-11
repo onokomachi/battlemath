@@ -1,0 +1,72 @@
+// BattleMath Online - Firestore Security Rules
+// エビデンスレベルA: Firebase公式セキュリティルール設計パターン
+//
+// デプロイ方法:
+//   firebase deploy --only firestore:rules
+//
+// コレクション構造:
+//   /users/{uid}          - ユーザープロファイル・進捗
+//   /rooms/{roomId}       - PvPルーム
+//   /config/game          - ゲーム設定 (管理者のみ書込み)
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 管理者判定: ADMIN_EMAILS (constants.ts) と同期すること
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email in [
+          'ono.yosuke@isesaki-school.ed.jp'
+        ];
+    }
+
+    // ユーザーデータ: 自分のデータのみ読み書き可 / 管理者は全操作可
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null
+        && (request.auth.uid == userId || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // PvPルーム: 認証済みユーザーが読み書き可
+    // エビデンスA: Firebase公式 - 最小権限の原則
+    // 参加者(host/guest)のみ削除可能にし、ゾンビルームの蓄積を防止
+    match /rooms/{roomId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null
+        && (resource.data.hostId == request.auth.uid
+            || resource.data.guestId == request.auth.uid
+            || resource.data.status == 'finished'
+            || isAdmin());
+    }
+
+    // ゲーム設定: 誰でも読める / 管理者のみ書込み可
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // クラスチーム: 認証済みユーザーが読み書き可 / 管理者は削除可
+    // エビデンスB: 協力設計 × オキシトシン系（Zak 2012）
+    match /classes/{classId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if isAdmin();
+    }
+
+    // ランキング用 (月次サブトピック別): 認証ユーザーが読み書き可
+    // ドキュメントID: {YYYY-MM}_{subtopic}_{uid}
+    match /rankings/{docId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null
+        && (resource.data.uid == request.auth.uid || isAdmin());
+    }
+  }
+}

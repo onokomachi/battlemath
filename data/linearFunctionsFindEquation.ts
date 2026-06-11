@@ -1,0 +1,76 @@
+import type { ProblemSet } from '../types';
+
+export const linearFunctionsFindEquationProblems: ProblemSet = {
+  "切片を求める": [
+    { type: 'graph_to_equation', data: { question: "下のグラフのy切片を求めなさい。", points: [{ x: 0, y: -5 }, { x: 1, y: -3 }] }, answer: "-5" },
+    { type: 'graph_to_equation', data: { question: "下のグラフのy切片を求めなさい。", points: [{ x: 0, y: 3 }, { x: 1, y: 2 }] }, answer: "3" },
+    { type: 'graph_to_equation', data: { question: "下のグラフのy切片を求めなさい。", points: [{ x: 0, y: 0 }, { x: 1, y: 5 }] }, answer: "0" },
+    { type: 'graph_to_equation', data: { question: "下のグラフのy切片を求めなさい。", points: [{ x: 0, y: -8 }, { x: 1, y: -8 }] }, answer: "-8" },
+    { type: 'graph_to_equation', data: { question: "下のグラフのy切片を求めなさい。", points: [{ x: 0, y: 7 }, { x: 3, y: 8 }] }, answer: "7" },
+    { type: 'graph_to_equation', data: { question: "下のグラフのy切片を求めなさい。", points: [{ x: 0, y: -1 }, { x: 1, y: -4 }] }, answer: "-1" },
+    { type: 'graph_to_equation', data: { question: "下のグラフのy切片を求めなさい。", points: [{ x: 0, y: 0.5 }, { x: 1, y: 1.5 }] }, answer: "0.5" },
+    { type: 'graph_to_equation', data: { question: "下のグラフのy切片を求めなさい。", points: [{ x: 0, y: 6 }, { x: 1, y: 4 }] }, answer: "6" },
+    { type: 'graph_to_equation', data: { question: "下のグラフのy切片を求めなさい。", points: [{ x: 0, y: 8 }, { x: 1, y: 4 }] }, answer: "8" },
+    { type: 'graph_to_equation', data: { question: "下のグラフのy切片を求めなさい。", points: [{ x: 0, y: -1 }, { x: 2, y: 0 }] }, answer: "-1" },
+  ],
+  "傾きを求める": [
+    { type: 'graph_to_equation', data: { question: "下のグラフの傾きを求めなさい。", points: [{ x: 0, y: 1 }, { x: 1, y: 5 }] }, answer: "4" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの傾きを求めなさい。", points: [{ x: 0, y: 6 }, { x: 2, y: 5 }] }, answer: "-1/2" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの傾きを求めなさい。", points: [{ x: 0, y: 0 }, { x: 1, y: -1 }] }, answer: "-1" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの傾きを求めなさい。", points: [{ x: 0, y: 5 }, { x: 1, y: 5 }] }, answer: "0" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの傾きを求めなさい。", points: [{ x: 0, y: 9 }, { x: 1, y: 7 }] }, answer: "-2" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの傾きを求めなさい。", points: [{ x: 0, y: -7 }, { x: 1, y: -6 }] }, answer: "1" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの傾きを求めなさい。", points: [{ x: 0, y: -3 }, { x: 1, y: -2.2 }] }, answer: "0.8" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの傾きを求めなさい。", points: [{ x: 0, y: 4 }, { x: 1, y: 7 }] }, answer: "3" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの傾きを求めなさい。", points: [{ x: 0, y: 2 }, { x: 5, y: 1 }] }, answer: "-1/5" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの傾きを求めなさい。", points: [{ x: 0, y: 2 }, { x: 1, y: -2 }] }, answer: "-4" },
+  ],
+  "ｸﾞﾗﾌの式を求める": [
+     { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 0, y: 1}, {x: 2, y: 5}] }, answer: "y=2x+1" },
+     { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 1, y: 4}, {x: 2, y: 7}] }, answer: "y=3x+1" },
+     { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 0, y: -2}, {x: 1, y: 0}] }, answer: "y=2x-2" },
+     { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: -1, y: 4}, {x: 1, y: 0}] }, answer: "y=-2x+2" },
+     { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 0, y: 3}, {x: 2, y: 7}] }, answer: "y=2x+3" },
+     { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 0, y: 3}, {x: 1, y: 4}] }, answer: "y=x+3" },
+     { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 0, y: 2}, {x: 1, y: 1}] }, answer: "y=-x+2" },
+     { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 0, y: 1}, {x: 1, y: 3}] }, answer: "y=2x+1" },
+     { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 0, y: 4}, {x: 2, y: 5}] }, answer: "y=1/2x+4" },
+     { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 0, y: -2}, {x: 3, y: -4}] }, answer: "y=-2/3x-2" }
+  ],
+  "ｸﾞﾗﾌから式1": [
+    { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{ x: 0, y: 2 }, { x: 1, y: 4 }] }, answer: "y=2x+2" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{ x: 0, y: -3 }, { x: 2, y: 1 }] }, answer: "y=2x-3" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{ x: 0, y: 1 }, { x: -1, y: 3 }] }, answer: "y=-2x+1" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{ x: 0, y: 0 }, { x: -2, y: -4 }] }, answer: "y=2x" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{ x: 1, y: 1 }, { x: 3, y: 5 }] }, answer: "y=2x-1" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 0, y: -3}, {x: 2, y: -2}] }, answer: "y=1/2x-3" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 0, y: 7}, {x: 2, y: 10}] }, answer: "y=3/2x+7" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 0, y: -3}, {x: 1, y: -1}] }, answer: "y=2x-3" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 0, y: -2}, {x: 2, y: -3}] }, answer: "y=-1/2x-2" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 0, y: 3}, {x: 1, y: 1}] }, answer: "y=-2x+3" }
+  ],
+  "ｸﾞﾗﾌから式2": [
+    { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 1, y: 1}, {x: 2, y: -2}] }, answer: "y=-3x+4" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 0, y: -4}, {x: 2, y: 0}] }, answer: "y=2x-4" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: -2, y: 3}, {x: -1, y: 4}] }, answer: "y=x+5" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 0, y: 1}, {x: 1, y: -1}] }, answer: "y=-2x+1" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 3, y: 0}, {x: 0, y: 1}] }, answer: "y=-1/3x+1" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 0, y: -1}, {x: 2, y: 2}] }, answer: "y=3/2x-1" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 0, y: 4}, {x: 1, y: 7}] }, answer: "y=3x+4" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 0, y: -5}, {x: 3, y: -1}] }, answer: "y=4/3x-5" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 0, y: -3}, {x: 1, y: -5}] }, answer: "y=-2x-3" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: -3, y: 0}, {x: -3, y: 1}] }, answer: "x=-3" }
+  ],
+  "ｸﾞﾗﾌから式3(発展)": [
+    { type: 'text', data: { question: "2直線y=x+1とy=-2x+7の交点を通り、傾きが3の直線の式を答えなさい。" }, answer: "y=3x-3" },
+    { type: 'text', data: { question: "点(2, 3)を通り、直線2x+y=5に平行な直線の式を答えなさい。" }, answer: "y=-2x+7" },
+    { type: 'text', data: { question: "点(-1, 5)を通り、x軸に平行な直線の式を答えなさい。" }, answer: "y=5" },
+    { type: 'text', data: { question: "点(4, -2)を通り、y軸に平行な直線の式を答えなさい。" }, answer: "x=4" },
+    { type: 'text', data: { question: "2直線y=2xとy=x+3の交点と、点(1, 0)を通る直線の式を答えなさい。" }, answer: "y=-3x+3" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 1, y: 3}, {x: 3, y: 2}] }, answer: "y=-1/2x+7/2" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: -1, y: -6}, {x: -3, y: -3}] }, answer: "y=-3/2x-15/2" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 1, y: 3}, {x: 3, y: 6}] }, answer: "y=3/2x+3/2" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 1, y: -1}, {x: 4, y: 0}] }, answer: "y=1/3x-4/3" },
+    { type: 'graph_to_equation', data: { question: "下のグラフの式を求めなさい。", points: [{x: 1, y: 4}, {x: 4, y: 6}] }, answer: "y=2/3x+10/3" }
+  ],
+};

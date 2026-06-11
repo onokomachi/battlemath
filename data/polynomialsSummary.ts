@@ -1,0 +1,72 @@
+import { ProblemSet } from '../types';
+
+export const polynomialsSummaryProblems: ProblemSet = {
+  "文字式(完成1)": [
+    { type: 'text', data: { question: "次の計算をしなさい。3(a-2b) + 2(a+5b)" }, answer: "5a+4b" },
+    { type: 'text', data: { question: "次の計算をしなさい。4(2x-y) - 3(x-2y)" }, answer: "5x+2y" },
+    { type: 'text', data: { question: "次の計算をしなさい。6x²y ÷ 3xy × 2y" }, answer: "4xy" },
+    { type: 'text', data: { question: "次の計算をしなさい。(1/2)(4x-6y) - (1/3)(6x-9y)" }, answer: "0" },
+    { type: 'text', data: { question: "次の計算をしなさい。(-2a)³ × 3b ÷ (-6ab)" }, answer: "4a²" },
+    { type: 'text', data: { question: "次の計算をしなさい。a(a+1) - a(a-1)" }, answer: "2a" },
+    { type: 'text', data: { question: "次の計算をしなさい。5x - (3x-1)" }, answer: "2x+1" },
+    { type: 'text', data: { question: "次の計算をしなさい。12xy ÷ (-2y) + 3x" }, answer: "-3x" },
+    { type: 'text', data: { question: "次の計算をしなさい。(x+y) + (x-y)" }, answer: "2x" },
+    { type: 'text', data: { question: "次の計算をしなさい。(x+y) - (x-y)" }, answer: "2y" },
+    { type: 'text', data: { question: "次の計算をしなさい。2(x-1) + 3(x-1)" }, answer: "5x-5" },
+    { type: 'text', data: { question: "次の計算をしなさい。10ab ÷ 5a × 3b" }, answer: "6b²" },
+    { type: 'text', data: { question: "次の計算をしなさい。(x+y)/2 - (x-y)/2" }, answer: "y" },
+    { type: 'text', data: { question: "次の計算をしなさい。3a - [b - (a-b)]" }, answer: "4a-2b" },
+    { type: 'text', data: { question: "次の計算をしなさい。(-a)² × a ÷ a³" }, answer: "1" }
+  ],
+  "文字式(完成2)": [
+    { type: 'text', data: { question: "次の計算をしなさい。x(x+2) - x²" }, answer: "2x" },
+    { type: 'text', data: { question: "次の計算をしなさい。(2a-b)/3 - (a-2b)/2" }, answer: "(a+4b)/6" },
+    { type: 'text', data: { question: "次の計算をしなさい。a³b² ÷ (ab)²" }, answer: "a" },
+    { type: 'text', data: { question: "次の計算をしなさい。2x(x-y) - x(2x-y)" }, answer: "-xy" },
+    { type: 'text', data: { question: "次の計算をしなさい。6a²b ÷ (-3ab) × (-2b)" }, answer: "4ab" },
+    { type: 'text', data: { question: "次の計算をしなさい。4(x-1) - 2(2x+1)" }, answer: "-6" },
+    { type: 'text', data: { question: "次の計算をしなさい。y=ax+b を x について解きなさい。" }, answer: "x=(y-b)/a" },
+    { type: 'text', data: { question: "次の計算をしなさい。3x² - (2x²-x)" }, answer: "x²+x" },
+    { type: 'text', data: { question: "次の計算をしなさい。15x³y² ÷ (-5xy) ÷ (-3x)" }, answer: "xy" },
+    { type: 'text', data: { question: "次の計算をしなさい。x - (x-y)/2" }, answer: "(x+y)/2" },
+    { type: 'text', data: { question: "次の計算をしなさい。(a-b) + (b-c) + (c-a)" }, answer: "0" },
+    { type: 'text', data: { question: "次の計算をしなさい。2(3a-b) - 3(2a-b)" }, answer: "b" },
+    { type: 'text', data: { question: "次の計算をしなさい。a⁵ ÷ (a² × a³)" }, answer: "1" },
+    { type: 'text', data: { question: "次の計算をしなさい。(1/3)(9a+6b) - (1/2)(4a-2b)" }, answer: "a+3b" },
+    { type: 'text', data: { question: "次の計算をしなさい。x=2, y=-1 のとき、(x+y)² - (x-y)² の値を求めよ。" }, answer: "-8" }
+  ],
+  "式の変形(完)": [
+    { type: 'text', data: { question: "S = 1/2(a+b)h を h について解きなさい。" }, answer: "h=2S/(a+b)" },
+    { type: 'text', data: { question: "S = πr(r+l) を l について解きなさい。" }, answer: "l=S/(pi*r)-r" },
+    { type: 'text', data: { question: "1/a + 1/b = 1/f を f について解きなさい。" }, answer: "f=ab/(a+b)" },
+    { type: 'text', data: { question: "x/a + y/b = 1 を y について解きなさい。" }, answer: "y=b(1-x/a)" },
+    { type: 'text', data: { question: "a = (b+c)/2 を b について解きなさい。" }, answer: "b=2a-c" },
+    { type: 'text', data: { question: "V = (1/3)Sh を S について解きなさい。" }, answer: "S=3V/h" },
+    { type: 'text', data: { question: "l = 2πr を r について解きなさい。" }, answer: "r=l/(2pi)" },
+    { type: 'text', data: { question: "m = (a+b)/2 を a について解きなさい。" }, answer: "a=2m-b" },
+    { type: 'text', data: { question: "y = -2x+5 を x について解きなさい。" }, answer: "x=(5-y)/2" },
+    { type: 'text', data: { question: "3x-4y=12 を y について解きなさい。" }, answer: "y=3/4x-3" },
+    { type: 'text', data: { question: "C = 2(l+w) を w について解きなさい。" }, answer: "w=C/2-l" },
+    { type: 'text', data: { question: "A = P(1+r) を r について解きなさい。" }, answer: "r=A/P-1" },
+    { type: 'text', data: { question: "S = a + (n-1)d を n について解きなさい。" }, answer: "n=(S-a)/d+1" },
+    { type: 'text', data: { question: "F = G × (m1*m2)/r² を G について解きなさい。" }, answer: "G=F*r²/(m1*m2)" },
+    { type: 'text', data: { question: "E = (1/2)mv² を m について解きなさい。" }, answer: "m=2E/v²" }
+  ],
+  "文字式の値(完)": [
+    { type: 'text', data: { question: "x=-2, y=3のとき、-x² + y の値を求めよ。" }, answer: "-1" },
+    { type: 'text', data: { question: "a=1/2, b=-1/3のとき、2a-3bの値を求めよ。" }, answer: "2" },
+    { type: 'text', data: { question: "x=-3のとき、(x-1)(x-2)の値を求めよ。" }, answer: "20" },
+    { type: 'text', data: { question: "a=5, b=-2のとき、(a+b)(a-b)の値を求めよ。" }, answer: "21" },
+    { type: 'text', data: { question: "x=4, y=-1のとき、3(2x-y) - 2(x+3y)の値を求めよ。" }, answer: "21" },
+    { type: 'text', data: { question: "a=3, b=-4のとき、(a²-b²)の値を求めよ。" }, answer: "-7" },
+    { type: 'text', data: { question: "x=1, y=2のとき、12x²y³ ÷ 6xy²の値を求めよ。" }, answer: "4" },
+    { type: 'text', data: { question: "a=2, b=-1のとき、a/b + b/a の値を求めよ。" }, answer: "-2.5" },
+    { type: 'text', data: { question: "x=10, y=5のとき、(x-y)²の値を求めよ。" }, answer: "25" },
+    { type: 'text', data: { question: "a=2, b=-5のとき、-ab²の値を求めよ。" }, answer: "-50" },
+    { type: 'text', data: { question: "x=-1のとき、x³+x²+x+1の値を求めよ。" }, answer: "0" },
+    { type: 'text', data: { question: "a=4, b=1/2のとき、6ab ÷ 3bの値を求めよ。" }, answer: "8" },
+    { type: 'text', data: { question: "x=3のとき、(x+2)² - (x-2)²の値を求めよ。" }, answer: "20" },
+    { type: 'text', data: { question: "a=-1, b=-2のとき、(a+b)³の値を求めよ。" }, answer: "-27" },
+    { type: 'text', data: { question: "x=5, y=2のとき、(x²-y²) ÷ (x-y)の値を求めよ。" }, answer: "7" }
+  ]
+};
