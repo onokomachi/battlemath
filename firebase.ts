@@ -5,15 +5,15 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore, enableNetwork, disableNetwork } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
-// battlemath-online Firebase project config (from Firebase console)
+// battlemathEX Firebase project config (from Firebase console)
 const firebaseConfig = {
-  apiKey: "AIzaSyDfr022IMbBXCJT_wM2UCmZqexv-KKMtEM",
-  authDomain: "battlemath-online.firebaseapp.com",
-  projectId: "battlemath-online",
-  storageBucket: "battlemath-online.firebasestorage.app",
-  messagingSenderId: "492702213499",
-  appId: "1:492702213499:web:7680fa2a44be90a77b89de",
-  measurementId: "G-19HQYHJJN9"
+  apiKey: "AIzaSyAPtpl7wqb0cGWEtX7BaBZAqchItcC5YgU",
+  authDomain: "battlemathex.firebaseapp.com",
+  projectId: "battlemathex",
+  storageBucket: "battlemathex.firebasestorage.app",
+  messagingSenderId: "265817542074",
+  appId: "1:265817542074:web:985315a4c5ed5e491c6183",
+  measurementId: "G-GN5QX720MN"
 };
 
 let app: any, auth: any, db: any, storage: any, googleProvider: any, analytics: any;
@@ -45,7 +45,7 @@ const checkFirestoreConnection = async (): Promise<boolean> => {
       console.error(
         '%c[BattleMath] Firestoreデータベースが見つかりません。\n' +
         'Firebase Console → Firestore Database → 「データベースを作成」を実行してください。\n' +
-        'https://console.firebase.google.com/project/battlemath-online/firestore',
+        'https://console.firebase.google.com/project/battlemathex/firestore',
         'color: #ff6b6b; font-size: 14px; font-weight: bold;'
       );
     } else {
