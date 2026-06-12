@@ -255,7 +255,7 @@ const ClassBattleBoard: React.FC<ClassBattleBoardProps> = ({
                   className={`
                     rounded-xl p-4 border-2 transition-all
                     ${isMySchool
-                      ? 'border-cyan-400/50 bg-cyan-900/10 shadow-[0_0_20px_rgba(6,182,212,0.1)]'
+                      ? 'border-red-400/50 bg-red-900/10 shadow-[0_0_20px_rgba(6,182,212,0.1)]'
                       : isTop3
                         ? 'border-amber-500/30 bg-amber-900/5'
                         : 'border-slate-700/30 bg-slate-900/30'
@@ -271,11 +271,11 @@ const ClassBattleBoard: React.FC<ClassBattleBoardProps> = ({
                     {/* School info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <span className={`font-black text-lg ${isMySchool ? 'text-cyan-300' : 'text-white'}`}>
+                        <span className={`font-black text-lg ${isMySchool ? 'text-red-300' : 'text-white'}`}>
                           {sch.school}
                         </span>
                         {isMySchool && (
-                          <span className="text-[9px] bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full font-bold border border-cyan-500/30">
+                          <span className="text-[9px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full font-bold border border-red-500/30">
                             MY SCHOOL
                           </span>
                         )}

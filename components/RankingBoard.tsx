@@ -138,17 +138,17 @@ const RankingBoard: React.FC<RankingBoardProps> = ({ onClose, db, currentUserId 
         key={entry.id + (isNearRow ? '_near' : '')}
         className={`transition-colors ${
           isMe
-            ? 'bg-cyan-900/30 border-l-2 border-cyan-400'
+            ? 'bg-red-900/30 border-l-2 border-red-400'
             : isNearRow
             ? 'bg-gray-900/30'
             : idx === 0 ? 'bg-amber-900/10' : idx === 1 ? 'bg-gray-700/5' : idx === 2 ? 'bg-amber-900/5' : ''
-        } hover:bg-cyan-900/10`}
+        } hover:bg-red-900/10`}
       >
         <td className="p-2 sm:p-3 text-center font-bold text-base sm:text-lg">
           {idx < 3 ? (
             <span>{rankIcon(idx + 1)}</span>
           ) : (
-            <span className={`text-xs sm:text-sm font-mono ${isMe ? 'text-cyan-400 font-black' : 'text-gray-400'}`}>
+            <span className={`text-xs sm:text-sm font-mono ${isMe ? 'text-red-400 font-black' : 'text-gray-400'}`}>
               {idx + 1}
             </span>
           )}
@@ -156,19 +156,19 @@ const RankingBoard: React.FC<RankingBoardProps> = ({ onClose, db, currentUserId 
         <td className="p-2 sm:p-3">
           <div className="flex items-center gap-2 sm:gap-3">
             {entry.photoURL ? (
-              <img src={entry.photoURL} alt="" className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-cyan-800/50" />
+              <img src={entry.photoURL} alt="" className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-red-800/50" />
             ) : (
-              <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border flex items-center justify-center text-[10px] sm:text-xs ${isMe ? 'bg-cyan-800/50 border-cyan-500 text-cyan-300' : 'bg-cyan-900/40 border-cyan-800/50 text-cyan-400'}`}>
+              <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border flex items-center justify-center text-[10px] sm:text-xs ${isMe ? 'bg-red-800/50 border-red-500 text-red-300' : 'bg-red-900/40 border-red-800/50 text-red-400'}`}>
                 {entry.displayName.charAt(0).toUpperCase()}
               </div>
             )}
-            <span className={`font-bold text-xs sm:text-sm ${isMe ? 'text-cyan-300' : idx < 3 ? 'text-white' : 'text-gray-300'}`}>
+            <span className={`font-bold text-xs sm:text-sm ${isMe ? 'text-red-300' : idx < 3 ? 'text-white' : 'text-gray-300'}`}>
               {entry.displayName}
-              {isMe && <span className="ml-1 sm:ml-2 text-[9px] sm:text-[10px] text-cyan-500 font-mono">◄ YOU</span>}
+              {isMe && <span className="ml-1 sm:ml-2 text-[9px] sm:text-[10px] text-red-500 font-mono">◄ YOU</span>}
             </span>
           </div>
         </td>
-        <td className="p-2 sm:p-3 text-center text-cyan-400 font-mono text-xs sm:text-sm font-bold">
+        <td className="p-2 sm:p-3 text-center text-red-400 font-mono text-xs sm:text-sm font-bold">
           {entry.playerLevel}
         </td>
         <td className="p-2 sm:p-3 text-center">
@@ -192,10 +192,10 @@ const RankingBoard: React.FC<RankingBoardProps> = ({ onClose, db, currentUserId 
     <div className="absolute inset-0 z-50 bg-black/85 flex items-center justify-center p-3 sm:p-4">
       <div className="w-full max-w-2xl hud-panel rounded-2xl overflow-hidden flex flex-col max-h-[85vh]">
         {/* Header */}
-        <div className="p-3 sm:p-5 border-b border-cyan-900/50 flex justify-between items-center flex-shrink-0">
+        <div className="p-3 sm:p-5 border-b border-red-900/50 flex justify-between items-center flex-shrink-0">
           <div>
             <h2 className="text-base sm:text-xl font-bold text-hologram tracking-[0.2em]">RANKING BOARD</h2>
-            <p className="text-[10px] sm:text-xs text-cyan-500 font-mono tracking-widest">GLOBAL_LEADERBOARD</p>
+            <p className="text-[10px] sm:text-xs text-red-500 font-mono tracking-widest">GLOBAL_LEADERBOARD</p>
           </div>
           <button
             onClick={onClose}
@@ -206,14 +206,14 @@ const RankingBoard: React.FC<RankingBoardProps> = ({ onClose, db, currentUserId 
         </div>
 
         {/* Format Tabs */}
-        <div className="flex border-b border-cyan-900/30 flex-shrink-0 overflow-x-auto">
+        <div className="flex border-b border-red-900/30 flex-shrink-0 overflow-x-auto">
           {TAB_DEFS.map(tab => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={`px-3 sm:px-4 py-2 sm:py-2.5 text-[10px] sm:text-xs font-bold transition-all whitespace-nowrap border-b-2 ${
                 activeTab === tab.key
-                  ? 'text-cyan-300 border-cyan-400 bg-cyan-950/30'
+                  ? 'text-red-300 border-red-400 bg-red-950/30'
                   : 'text-slate-500 border-transparent hover:text-slate-300 hover:bg-slate-900/30'
               }`}
             >
@@ -226,7 +226,7 @@ const RankingBoard: React.FC<RankingBoardProps> = ({ onClose, db, currentUserId 
         {/* Table */}
         <div className="flex-grow overflow-y-auto">
           {isLoading ? (
-            <div className="p-12 text-center text-cyan-400 font-mono animate-pulse">LOADING...</div>
+            <div className="p-12 text-center text-red-400 font-mono animate-pulse">LOADING...</div>
           ) : entries.length === 0 ? (
             <div className="p-12 text-center text-gray-500 text-sm">
               <p>まだランキングデータがありません</p>
@@ -242,8 +242,8 @@ const RankingBoard: React.FC<RankingBoardProps> = ({ onClose, db, currentUserId 
             <>
               {/* 近接ランキング (自分がトップ4以下の場合) */}
               {nearEntries.length > 0 && (
-                <div className="border-b border-cyan-900/30">
-                  <div className="px-4 py-1.5 bg-cyan-950/40 text-[10px] text-cyan-500 font-mono tracking-widest">
+                <div className="border-b border-red-900/30">
+                  <div className="px-4 py-1.5 bg-red-950/40 text-[10px] text-red-500 font-mono tracking-widest">
                     ▶ あなたの周辺ランキング
                   </div>
                   <table className="w-full text-left border-collapse">

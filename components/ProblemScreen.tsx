@@ -45,18 +45,18 @@ interface ProblemScreenProps {
 
 const HintModal: React.FC<{ hint: string | string[]; onClose: () => void }> = ({ hint, onClose }) => (
   <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[100] p-4 backdrop-blur-md">
-    <div className="hud-panel rounded-2xl p-8 max-w-xl w-full shadow-2xl border-cyan-400/40 animate-math-fade-in relative">
-      <div className="corner-accent lt border-cyan-400"></div>
-      <div className="corner-accent rb border-cyan-400"></div>
-      <h3 className="text-cyan-400 text-2xl font-bold mb-4 flex items-center gap-3">
+    <div className="hud-panel rounded-2xl p-8 max-w-xl w-full shadow-2xl border-red-400/40 animate-math-fade-in relative">
+      <div className="corner-accent lt border-red-400"></div>
+      <div className="corner-accent rb border-red-400"></div>
+      <h3 className="text-red-400 text-2xl font-bold mb-4 flex items-center gap-3">
         💡 ヒント
       </h3>
-      <div className="text-white/90 text-lg space-y-3 leading-relaxed border-l-2 border-cyan-500/30 pl-4">
+      <div className="text-white/90 text-lg space-y-3 leading-relaxed border-l-2 border-red-500/30 pl-4">
         {Array.isArray(hint) ? hint.map((h, i) => <p key={i}>{h}</p>) : <p>{hint}</p>}
       </div>
       <button
         onClick={onClose}
-        className="mt-8 w-full btn-tactical py-3 rounded-lg font-bold text-cyan-400 border-cyan-400/40 hover:bg-cyan-400/20 text-lg"
+        className="mt-8 w-full btn-tactical py-3 rounded-lg font-bold text-red-400 border-red-400/40 hover:bg-red-400/20 text-lg"
       >
         閉じる
       </button>
@@ -99,19 +99,19 @@ const PracticeSummary: React.FC<{ stats: SessionStats, subTopic: string, elapsed
     return (
         <div className="flex flex-col items-center animate-level-up-reveal w-full max-w-xl mx-auto">
              <div className="text-center mb-4 sm:mb-6">
-                <p className="text-cyan-400 font-bold tracking-[0.3em] text-xs sm:text-sm mb-1">セッション完了</p>
+                <p className="text-red-400 font-bold tracking-[0.3em] text-xs sm:text-sm mb-1">セッション完了</p>
                 <h2 className="text-3xl sm:text-4xl font-black text-white tracking-wide">結果発表</h2>
              </div>
 
              <div className="hud-panel w-full rounded-2xl p-5 sm:p-8 flex flex-col items-center shadow-2xl relative overflow-hidden">
-                <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-cyan-500/5 blur-[80px] rounded-full"></div>
+                <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-red-500/5 blur-[80px] rounded-full"></div>
 
-                <div className="text-5xl sm:text-6xl font-black mb-2 sm:mb-3 drop-shadow-[0_0_30px_rgba(34,211,238,0.4)]">
-                    <span className={rank === 'S' ? 'text-amber-400' : rank === 'A' ? 'text-cyan-400' : rank === 'B' ? 'text-blue-400' : 'text-slate-400'}>{rank}</span>
+                <div className="text-5xl sm:text-6xl font-black mb-2 sm:mb-3 drop-shadow-[0_0_30px_rgba(239,68,68,0.4)]">
+                    <span className={rank === 'S' ? 'text-amber-400' : rank === 'A' ? 'text-red-400' : rank === 'B' ? 'text-blue-400' : 'text-slate-400'}>{rank}</span>
                     <span className="text-xs sm:text-sm text-white/50 block text-center font-bold mt-1">ランク</span>
                 </div>
 
-                <p className="text-cyan-300/70 text-xs sm:text-sm mb-4 sm:mb-6 text-center">
+                <p className="text-red-300/70 text-xs sm:text-sm mb-4 sm:mb-6 text-center">
                   {rank === 'S' ? '素晴らしい！完璧な理解力です！' :
                    rank === 'A' ? 'よくできました！この調子で頑張ろう！' :
                    rank === 'B' ? 'いい感じ！もう少し練習すればAランクも近い！' :
@@ -119,18 +119,18 @@ const PracticeSummary: React.FC<{ stats: SessionStats, subTopic: string, elapsed
                    '間違いは学びのチャンス。もう一度挑戦してみよう！'}
                 </p>
 
-                <div className="grid grid-cols-3 gap-4 w-full mb-4 sm:mb-6 border-t border-cyan-500/10 pt-4 sm:pt-6">
+                <div className="grid grid-cols-3 gap-4 w-full mb-4 sm:mb-6 border-t border-red-500/10 pt-4 sm:pt-6">
                     <div className="text-center">
-                        <p className="text-[10px] sm:text-xs text-cyan-400 font-bold mb-1">正解数</p>
-                        <p className="text-lg sm:text-xl text-white font-bold font-mono">{stats.correct} <span className="text-xs text-cyan-600">/ {stats.problemCount}</span></p>
+                        <p className="text-[10px] sm:text-xs text-red-400 font-bold mb-1">正解数</p>
+                        <p className="text-lg sm:text-xl text-white font-bold font-mono">{stats.correct} <span className="text-xs text-red-600">/ {stats.problemCount}</span></p>
                     </div>
                     <div className="text-center">
-                        <p className="text-[10px] sm:text-xs text-cyan-400 font-bold mb-1">所要時間</p>
+                        <p className="text-[10px] sm:text-xs text-red-400 font-bold mb-1">所要時間</p>
                         <p className="text-lg sm:text-xl text-white font-bold font-mono">{elapsedMin}:{elapsedSec.toString().padStart(2, '0')}</p>
                     </div>
                     <div className="text-center">
-                        <p className="text-[10px] sm:text-xs text-cyan-400 font-bold mb-1">スコア</p>
-                        <p className="text-lg sm:text-xl text-cyan-300 font-bold font-mono">{stats.totalScore}</p>
+                        <p className="text-[10px] sm:text-xs text-red-400 font-bold mb-1">スコア</p>
+                        <p className="text-lg sm:text-xl text-red-300 font-bold font-mono">{stats.totalScore}</p>
                     </div>
                 </div>
 
@@ -139,7 +139,7 @@ const PracticeSummary: React.FC<{ stats: SessionStats, subTopic: string, elapsed
                     <p className="text-2xl sm:text-3xl text-amber-400 font-bold font-mono">+{mpReward} <span className="text-sm text-amber-600">MP</span></p>
                 </div>
 
-                <button onClick={() => onBack(mpReward)} className="btn-tactical w-full py-3 rounded-xl font-bold text-base sm:text-lg tracking-wide text-cyan-400 border-cyan-400/40">
+                <button onClick={() => onBack(mpReward)} className="btn-tactical w-full py-3 rounded-xl font-bold text-base sm:text-lg tracking-wide text-red-400 border-red-400/40">
                     戻る
                 </button>
              </div>
@@ -270,7 +270,7 @@ const ProblemScreen: React.FC<ProblemScreenProps> = ({ category, subTopic, onBac
 
     if (isCorrect) {
       setResult('correct');
-      setVfxClass('vfx-success ring-2 ring-cyan-500');
+      setVfxClass('vfx-success ring-2 ring-red-500');
       const points = Math.max(5, Math.floor(25 - duration));
       setScore(points);
       setSessionStats(prev => ({
@@ -352,8 +352,8 @@ const ProblemScreen: React.FC<ProblemScreenProps> = ({ category, subTopic, onBac
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center text-cyan-400 font-mono">
-        <div className="w-16 h-16 border-2 border-cyan-900 border-t-cyan-400 rounded-full animate-spin mb-4"></div>
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center text-red-400 font-mono">
+        <div className="w-16 h-16 border-2 border-red-900 border-t-red-400 rounded-full animate-spin mb-4"></div>
         <p className="animate-pulse tracking-[0.2em]">INITIALIZING_HUD...</p>
       </div>
     );
@@ -384,21 +384,21 @@ const ProblemScreen: React.FC<ProblemScreenProps> = ({ category, subTopic, onBac
 
       <div className="relative w-full max-w-6xl h-full">
         <div className={`w-full h-full hud-panel rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-5 z-10 relative transition-all duration-300 flex flex-col overflow-hidden ${vfxClass}`}>
-           <div className="corner-accent lt border-cyan-500/40"></div>
-           <div className="corner-accent rt border-cyan-500/40"></div>
-           <div className="corner-accent lb border-cyan-500/40"></div>
-           <div className="corner-accent rb border-cyan-500/40"></div>
+           <div className="corner-accent lt border-red-500/40"></div>
+           <div className="corner-accent rt border-red-500/40"></div>
+           <div className="corner-accent lb border-red-500/40"></div>
+           <div className="corner-accent rb border-red-500/40"></div>
 
-           <header className='flex justify-between items-center mb-2 border-b border-cyan-500/10 pb-2 flex-shrink-0'>
+           <header className='flex justify-between items-center mb-2 border-b border-red-500/10 pb-2 flex-shrink-0'>
               <div className='flex items-center gap-2 sm:gap-3 min-w-0'>
-                <button onClick={() => onBack(sessionStats)} className='text-cyan-400 hover:text-white transition-all p-1.5 sm:p-2 bg-blue-900/20 rounded-lg border border-cyan-500/20 flex-shrink-0' title="前の画面へ">
+                <button onClick={() => onBack(sessionStats)} className='text-red-400 hover:text-white transition-all p-1.5 sm:p-2 bg-blue-900/20 rounded-lg border border-red-500/20 flex-shrink-0' title="前の画面へ">
                   <BackIcon className='w-4 h-4 sm:w-5 sm:h-5' />
                 </button>
-                <button onClick={onHome} className='text-cyan-400 hover:text-white transition-all p-1.5 sm:p-2 bg-blue-900/20 rounded-lg border border-cyan-500/20 flex-shrink-0' title="メインメニューへ">
+                <button onClick={onHome} className='text-red-400 hover:text-white transition-all p-1.5 sm:p-2 bg-blue-900/20 rounded-lg border border-red-500/20 flex-shrink-0' title="メインメニューへ">
                   <HomeIcon className='w-4 h-4 sm:w-5 sm:h-5' />
                 </button>
                 <div className="min-w-0">
-                  <h2 className='text-[9px] sm:text-[10px] text-cyan-300 tracking-[0.2em] font-bold truncate'>{getHierarchyLabel()}</h2>
+                  <h2 className='text-[9px] sm:text-[10px] text-red-300 tracking-[0.2em] font-bold truncate'>{getHierarchyLabel()}</h2>
                   <h1 className='text-sm sm:text-base lg:text-lg font-bold tracking-wide text-white truncate'>{subTopic}</h1>
                 </div>
               </div>
@@ -408,10 +408,10 @@ const ProblemScreen: React.FC<ProblemScreenProps> = ({ category, subTopic, onBac
                   <p className='text-sm sm:text-base font-bold font-mono text-amber-300'>{elapsedDisplay}</p>
                 </div>
                 <div className='text-right'>
-                  <p className='text-[9px] sm:text-[10px] text-cyan-400 font-bold tracking-wide'>進捗</p>
-                  <p className='text-base sm:text-lg font-bold font-mono text-cyan-300'>{currentIndex + 1} <span className="text-xs text-cyan-600">/ {problems.length}</span></p>
+                  <p className='text-[9px] sm:text-[10px] text-red-400 font-bold tracking-wide'>進捗</p>
+                  <p className='text-base sm:text-lg font-bold font-mono text-red-300'>{currentIndex + 1} <span className="text-xs text-red-600">/ {problems.length}</span></p>
                   <div className="w-16 sm:w-20 bg-slate-900 h-1 rounded-full overflow-hidden mt-0.5">
-                    <div className="bg-cyan-400 h-full rounded-full transition-all duration-500" style={{ width: `${((currentIndex + 1) / problems.length) * 100}%` }} />
+                    <div className="bg-red-400 h-full rounded-full transition-all duration-500" style={{ width: `${((currentIndex + 1) / problems.length) * 100}%` }} />
                   </div>
                 </div>
               </div>
@@ -419,7 +419,7 @@ const ProblemScreen: React.FC<ProblemScreenProps> = ({ category, subTopic, onBac
 
            <main className='grid lg:grid-cols-[1fr_220px] gap-3 lg:gap-4 flex-1 min-h-0 overflow-y-auto'>
               <div className='space-y-2 sm:space-y-3'>
-                <div className='w-full flex items-center justify-center bg-slate-950/40 rounded-xl p-3 sm:p-4 border border-cyan-500/5 shadow-inner relative overflow-y-auto max-h-[40vh] lg:max-h-[50vh]'>
+                <div className='w-full flex items-center justify-center bg-slate-950/40 rounded-xl p-3 sm:p-4 border border-red-500/5 shadow-inner relative overflow-y-auto max-h-[40vh] lg:max-h-[50vh]'>
                     <div className="w-full">
                     {currentProblem?.type === 'angle_diagram' && <AngleDiagramView data={problemData} userAnswer={userAnswer} isSubmitted={showAnswer} />}
                     {currentProblem?.type === 'bent_transversal_diagram' && <BentTransversalDiagramView data={problemData} userAnswer={userAnswer} isSubmitted={showAnswer} />}
@@ -446,9 +446,9 @@ const ProblemScreen: React.FC<ProblemScreenProps> = ({ category, subTopic, onBac
                               return (
                                 <button key={i} onClick={() => { if (!showAnswer) setUserAnswer(opt); }} disabled={showAnswer}
                                   className={`w-full text-left px-4 py-2.5 rounded-xl border-2 transition-all text-sm sm:text-base font-mono
-                                    ${isSelected ? 'border-cyan-400 bg-cyan-900/30 text-cyan-200 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'border-cyan-900/30 bg-slate-900/60 text-white hover:border-cyan-600/50 hover:bg-slate-800/60'}
+                                    ${isSelected ? 'border-red-400 bg-red-900/30 text-red-200 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'border-red-900/30 bg-slate-900/60 text-white hover:border-red-600/50 hover:bg-slate-800/60'}
                                     ${showAnswer ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
-                                  <span className="text-cyan-500 mr-2 font-bold">{String.fromCharCode(65 + i)}.</span>{opt}
+                                  <span className="text-red-500 mr-2 font-bold">{String.fromCharCode(65 + i)}.</span>{opt}
                                 </button>
                               );
                             })}
@@ -467,9 +467,9 @@ const ProblemScreen: React.FC<ProblemScreenProps> = ({ category, subTopic, onBac
                               return (
                                 <button key={i} onClick={() => { if (!showAnswer) setUserAnswer(opt); }} disabled={showAnswer}
                                   className={`w-full text-left px-4 py-2.5 rounded-xl border-2 transition-all text-sm sm:text-base font-mono
-                                    ${isSelected ? 'border-cyan-400 bg-cyan-900/30 text-cyan-200 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'border-cyan-900/30 bg-slate-900/60 text-white hover:border-cyan-600/50 hover:bg-slate-800/60'}
+                                    ${isSelected ? 'border-red-400 bg-red-900/30 text-red-200 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'border-red-900/30 bg-slate-900/60 text-white hover:border-red-600/50 hover:bg-slate-800/60'}
                                     ${showAnswer ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
-                                  <span className="text-cyan-500 mr-2 font-bold">{String.fromCharCode(65 + i)}.</span>{opt}
+                                  <span className="text-red-500 mr-2 font-bold">{String.fromCharCode(65 + i)}.</span>{opt}
                                 </button>
                               );
                             })}
@@ -489,9 +489,9 @@ const ProblemScreen: React.FC<ProblemScreenProps> = ({ category, subTopic, onBac
                       <div className="w-full text-center">
                         <p className="text-base sm:text-lg lg:text-xl leading-snug mb-2 sm:mb-3 font-mono tracking-tight">{problemData?.question || problemData?.questionText || "問題文の解析に失敗しました"}</p>
                         {problemData?.svg ? (
-                          <div className="svg-container w-full max-w-xs mx-auto my-2 p-1.5 bg-slate-950 rounded-lg border border-cyan-500/10 overflow-visible" dangerouslySetInnerHTML={{ __html: problemData.svg }} />
+                          <div className="svg-container w-full max-w-xs mx-auto my-2 p-1.5 bg-slate-950 rounded-lg border border-red-500/10 overflow-visible" dangerouslySetInnerHTML={{ __html: problemData.svg }} />
                         ) : problemData?.imageUrl ? (
-                          <img src={problemData.imageUrl} alt="DOC" className="max-w-full max-h-40 sm:max-h-52 mx-auto rounded-lg shadow-xl border border-cyan-500/10 p-1 bg-slate-900 mb-2" />
+                          <img src={problemData.imageUrl} alt="DOC" className="max-w-full max-h-40 sm:max-h-52 mx-auto rounded-lg shadow-xl border border-red-500/10 p-1 bg-slate-900 mb-2" />
                         ) : null}
                         {problemData?.options && (
                           <div className="grid gap-2 max-w-lg mx-auto mt-2">
@@ -518,11 +518,11 @@ const ProblemScreen: React.FC<ProblemScreenProps> = ({ category, subTopic, onBac
                                   disabled={showAnswer}
                                   className={`w-full text-left px-4 py-2.5 rounded-xl border-2 transition-all text-sm sm:text-base font-mono
                                     ${isSelected
-                                      ? 'border-cyan-400 bg-cyan-900/30 text-cyan-200 shadow-[0_0_15px_rgba(34,211,238,0.2)]'
-                                      : 'border-cyan-900/30 bg-slate-900/60 text-white hover:border-cyan-600/50 hover:bg-slate-800/60'}
+                                      ? 'border-red-400 bg-red-900/30 text-red-200 shadow-[0_0_15px_rgba(239,68,68,0.2)]'
+                                      : 'border-red-900/30 bg-slate-900/60 text-white hover:border-red-600/50 hover:bg-slate-800/60'}
                                     ${showAnswer ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
                                 >
-                                  <span className="text-cyan-500 mr-2 font-bold">{String.fromCharCode(65 + i)}.</span>
+                                  <span className="text-red-500 mr-2 font-bold">{String.fromCharCode(65 + i)}.</span>
                                   {opt}
                                 </button>
                               );
@@ -538,8 +538,8 @@ const ProblemScreen: React.FC<ProblemScreenProps> = ({ category, subTopic, onBac
                   <div className='flex flex-col items-center gap-2'>
                     {!['fill_in_proof', 'graphing', 'graphing_with_table', 'vertical_calculation', 'guided_equation', 'intersection_guided_equation', 'simultaneous_equation'].includes(currentProblem?.type || '') && (
                         <div className='w-full max-w-lg'>
-                           <div className={`min-h-[3rem] sm:min-h-[3.5rem] p-2 sm:p-3 bg-slate-950/60 rounded-xl border-2 border-cyan-500/30 flex items-center shadow-inner`}>
-                              <span className='text-xs sm:text-sm font-bold text-cyan-400 mr-2 sm:mr-3 whitespace-nowrap'>解答:</span>
+                           <div className={`min-h-[3rem] sm:min-h-[3.5rem] p-2 sm:p-3 bg-slate-950/60 rounded-xl border-2 border-red-500/30 flex items-center shadow-inner`}>
+                              <span className='text-xs sm:text-sm font-bold text-red-400 mr-2 sm:mr-3 whitespace-nowrap'>解答:</span>
                               {(currentProblem?.type === 'text' || !currentProblem?.type) ? (
                                 <input
                                   type="text"
@@ -547,10 +547,10 @@ const ProblemScreen: React.FC<ProblemScreenProps> = ({ category, subTopic, onBac
                                   onChange={(e) => !showAnswer && setUserAnswer(e.target.value)}
                                   disabled={showAnswer}
                                   placeholder="ここに入力..."
-                                  className="flex-grow bg-transparent text-lg sm:text-xl lg:text-2xl font-mono text-cyan-200 font-bold tracking-wide outline-none placeholder:text-cyan-800 placeholder:text-sm"
+                                  className="flex-grow bg-transparent text-lg sm:text-xl lg:text-2xl font-mono text-red-200 font-bold tracking-wide outline-none placeholder:text-red-800 placeholder:text-sm"
                                 />
                               ) : (
-                                <span className='text-lg sm:text-xl lg:text-2xl font-mono text-cyan-200 flex-grow font-bold tracking-wide' style={{ wordBreak: 'break-all' }}>{userAnswer || <span className="text-cyan-800 text-sm">キーパッドで入力...</span>}</span>
+                                <span className='text-lg sm:text-xl lg:text-2xl font-mono text-red-200 flex-grow font-bold tracking-wide' style={{ wordBreak: 'break-all' }}>{userAnswer || <span className="text-red-800 text-sm">キーパッドで入力...</span>}</span>
                               )}
                            </div>
                         </div>
@@ -569,7 +569,7 @@ const ProblemScreen: React.FC<ProblemScreenProps> = ({ category, subTopic, onBac
                   timeTaken={timeTaken}
                   score={score}
                   hint={problemHint}
-                  getResultRingColor={() => showAnswer ? (result === 'correct' ? 'border-cyan-400' : 'border-red-500') : 'border-transparent'}
+                  getResultRingColor={() => showAnswer ? (result === 'correct' ? 'border-emerald-400' : 'border-red-500') : 'border-transparent'}
                 />
               </div>
 
@@ -587,12 +587,12 @@ const ProblemScreen: React.FC<ProblemScreenProps> = ({ category, subTopic, onBac
                 />
 
                 {/* Session stats */}
-                <div className="hud-panel p-2.5 sm:p-3 rounded-xl text-sm space-y-2 mt-auto border-cyan-500/10">
-                   <div className="flex justify-between items-center"><span className="text-cyan-500 font-bold text-xs">正解数</span><span className="text-white font-bold text-sm">{sessionStats.correct} / {sessionStats.problemCount}</span></div>
-                   <div className="flex justify-between items-center"><span className="text-cyan-500 font-bold text-xs">獲得MP</span><span className="text-amber-400 font-bold text-sm">{sessionStats.totalScore}</span></div>
+                <div className="hud-panel p-2.5 sm:p-3 rounded-xl text-sm space-y-2 mt-auto border-red-500/10">
+                   <div className="flex justify-between items-center"><span className="text-red-500 font-bold text-xs">正解数</span><span className="text-white font-bold text-sm">{sessionStats.correct} / {sessionStats.problemCount}</span></div>
+                   <div className="flex justify-between items-center"><span className="text-red-500 font-bold text-xs">獲得MP</span><span className="text-amber-400 font-bold text-sm">{sessionStats.totalScore}</span></div>
                    {sessionStats.problemCount > 0 && (
                      <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden">
-                       <div className={`h-full rounded-full transition-all duration-500 ${(sessionStats.correct / sessionStats.problemCount) >= 0.7 ? 'bg-cyan-400' : 'bg-amber-500'}`} style={{ width: `${(sessionStats.correct / sessionStats.problemCount) * 100}%` }}></div>
+                       <div className={`h-full rounded-full transition-all duration-500 ${(sessionStats.correct / sessionStats.problemCount) >= 0.7 ? 'bg-red-400' : 'bg-amber-500'}`} style={{ width: `${(sessionStats.correct / sessionStats.problemCount) * 100}%` }}></div>
                      </div>
                    )}
                 </div>
@@ -602,7 +602,7 @@ const ProblemScreen: React.FC<ProblemScreenProps> = ({ category, subTopic, onBac
 
         <button
           onClick={() => setIsMemoVisible(prev => !prev)}
-          className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 p-3 sm:p-4 rounded-full shadow-2xl transition-all transform hover:scale-110 z-50 ${isMemoVisible ? 'bg-cyan-500 text-slate-950 ring-2 ring-white' : 'bg-slate-900/80 text-cyan-400 border border-cyan-500/40'}`}
+          className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 p-3 sm:p-4 rounded-full shadow-2xl transition-all transform hover:scale-110 z-50 ${isMemoVisible ? 'bg-red-500 text-slate-950 ring-2 ring-white' : 'bg-slate-900/80 text-red-400 border border-red-500/40'}`}
         >
           <PencilIcon className='w-6 h-6 sm:w-7 sm:h-7' />
         </button>

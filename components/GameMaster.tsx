@@ -347,7 +347,7 @@ const GameMaster: React.FC<GameMasterProps> = ({ db, onClose }) => {
                         >
                           {c}組
                           {count > 0 && (
-                            <span className="absolute -top-1.5 -right-1.5 bg-cyan-500 text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center font-mono">
+                            <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center font-mono">
                               {count}
                             </span>
                           )}
@@ -364,7 +364,7 @@ const GameMaster: React.FC<GameMasterProps> = ({ db, onClose }) => {
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
                 {[
                   { label: '生徒数', value: classStats.totalStudents, color: 'text-purple-400', unit: '人' },
-                  { label: '平均Lv', value: classStats.avgLevel.toFixed(1), color: 'text-cyan-400', unit: '' },
+                  { label: '平均Lv', value: classStats.avgLevel.toFixed(1), color: 'text-red-400', unit: '' },
                   { label: '総正答数', value: classStats.totalCorrect, color: 'text-green-400', unit: '' },
                   { label: '総対戦数', value: classStats.totalMatches, color: 'text-blue-400', unit: '' },
                   { label: '総勝利数', value: classStats.totalWins, color: 'text-amber-400', unit: '' },
@@ -401,7 +401,7 @@ const GameMaster: React.FC<GameMasterProps> = ({ db, onClose }) => {
 
                   <div className="grid grid-cols-2 gap-3 mb-4">
                     {[
-                      { label: 'レベル', value: classDetailUser.playerLevel || 1, color: 'text-cyan-400' },
+                      { label: 'レベル', value: classDetailUser.playerLevel || 1, color: 'text-red-400' },
                       { label: 'MP', value: (classDetailUser.mathPoints || 0).toLocaleString(), color: 'text-amber-400' },
                       { label: '勝利数', value: classDetailUser.totalWins || 0, color: 'text-green-400' },
                       { label: '対戦数', value: classDetailUser.totalMatches || 0, color: 'text-blue-400' },
@@ -434,7 +434,7 @@ const GameMaster: React.FC<GameMasterProps> = ({ db, onClose }) => {
                   {/* Card collection */}
                   <div className="mb-4">
                     <p className="text-xs text-gray-500 mb-1">カード所持数</p>
-                    <p className="text-lg font-bold text-cyan-300 font-mono">
+                    <p className="text-lg font-bold text-red-300 font-mono">
                       {classDetailUser.ownedCardIds?.length || 0} 枚
                     </p>
                   </div>
@@ -495,7 +495,7 @@ const GameMaster: React.FC<GameMasterProps> = ({ db, onClose }) => {
                                 </div>
                               </div>
                             </td>
-                            <td className="p-3 text-center text-cyan-400 font-bold">{u.playerLevel || 1}</td>
+                            <td className="p-3 text-center text-red-400 font-bold">{u.playerLevel || 1}</td>
                             <td className="p-3 text-center text-green-400 font-mono text-sm">{u.totalCorrectAnswers || 0}</td>
                             <td className="p-3 text-center">
                               <span className="text-amber-400 font-bold text-sm">{u.totalWins || 0}</span>
@@ -570,7 +570,7 @@ const GameMaster: React.FC<GameMasterProps> = ({ db, onClose }) => {
                           <span className="text-gray-600 text-xs">未設定</span>
                         )}
                       </td>
-                      <td className="p-3 text-center text-cyan-400 font-bold">{u.playerLevel || 1}</td>
+                      <td className="p-3 text-center text-red-400 font-bold">{u.playerLevel || 1}</td>
                       <td className="p-3 text-center">
                         <span className="text-amber-400 font-bold">{u.totalWins || 0}勝</span>
                         <span className="text-gray-500 text-xs"> / {u.totalMatches || 0}戦</span>
@@ -631,7 +631,7 @@ const GameMaster: React.FC<GameMasterProps> = ({ db, onClose }) => {
                 <tbody className="divide-y divide-gray-800">
                   {rooms.map(room => (
                     <tr key={room.roomId} className="hover:bg-gray-800/50 transition-colors">
-                      <td className="p-3 font-mono text-xs text-cyan-300">{room.roomId}</td>
+                      <td className="p-3 font-mono text-xs text-red-300">{room.roomId}</td>
                       <td className="p-3 text-center">
                         <span className={`text-xs px-2 py-0.5 rounded border ${roomStatusBadge(room.status)}`}>
                           {room.status === 'playing' ? '対戦中' : room.status === 'waiting' ? '待機中' : '終了'}
@@ -673,7 +673,7 @@ const GameMaster: React.FC<GameMasterProps> = ({ db, onClose }) => {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {[
                 { label: '総ユーザー数', value: stats.totalUsers, color: 'text-amber-400' },
-                { label: '平均レベル', value: stats.avgLevel, color: 'text-cyan-400' },
+                { label: '平均レベル', value: stats.avgLevel, color: 'text-red-400' },
                 { label: '総対戦数', value: stats.totalMatches, color: 'text-blue-400' },
                 { label: '総勝利数', value: stats.totalWins, color: 'text-green-400' },
                 { label: 'アクティブルーム', value: stats.activeRooms, color: 'text-red-400' },
@@ -707,7 +707,7 @@ const GameMaster: React.FC<GameMasterProps> = ({ db, onClose }) => {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-500">平均Lv</span>
-                          <span className="text-cyan-400 font-bold">{gradeAvgLv}</span>
+                          <span className="text-red-400 font-bold">{gradeAvgLv}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-500">総正答数</span>
@@ -746,7 +746,7 @@ const GameMaster: React.FC<GameMasterProps> = ({ db, onClose }) => {
                       <td className="p-3 text-center text-amber-400 font-bold">{u.totalWins || 0}</td>
                       <td className="p-3 text-center text-gray-400">{u.totalMatches || 0}</td>
                       <td className="p-3 text-center text-green-400">{winRate(u.totalWins || 0, u.totalMatches || 0)}</td>
-                      <td className="p-3 text-center text-cyan-400">{u.playerLevel || 1}</td>
+                      <td className="p-3 text-center text-red-400">{u.playerLevel || 1}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -787,7 +787,7 @@ const GameMaster: React.FC<GameMasterProps> = ({ db, onClose }) => {
                   onChange={e => setConfigDraft(p => p ? { ...p, announcement: e.target.value } : p)}
                   rows={3}
                   placeholder="例: 2026/03/10 サーバーメンテナンスを予定しています"
-                  className="w-full bg-gray-800 border border-gray-700 rounded p-3 text-sm text-white focus:border-cyan-500 outline-none"
+                  className="w-full bg-gray-800 border border-gray-700 rounded p-3 text-sm text-white focus:border-red-500 outline-none"
                 />
               </div>
 
@@ -798,7 +798,7 @@ const GameMaster: React.FC<GameMasterProps> = ({ db, onClose }) => {
                   type="number"
                   value={configDraft.maxPvpRooms}
                   onChange={e => setConfigDraft(p => p ? { ...p, maxPvpRooms: Number(e.target.value) } : p)}
-                  className="w-32 bg-gray-800 border border-gray-700 rounded p-2 text-white focus:border-cyan-500 outline-none"
+                  className="w-32 bg-gray-800 border border-gray-700 rounded p-2 text-white focus:border-red-500 outline-none"
                 />
               </div>
 

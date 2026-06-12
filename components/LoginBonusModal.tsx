@@ -32,11 +32,11 @@ const LoginBonusModal: React.FC<LoginBonusModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-math-fade-in">
-      <div className="w-full max-w-md mx-4 bg-slate-950/95 border border-cyan-500/40 rounded-2xl shadow-[0_0_60px_rgba(6,182,212,0.15)] overflow-hidden">
+      <div className="w-full max-w-md mx-4 bg-slate-950/95 border border-red-500/40 rounded-2xl shadow-[0_0_60px_rgba(6,182,212,0.15)] overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-cyan-900/40 via-blue-900/30 to-cyan-900/40 p-5 text-center border-b border-cyan-500/20">
+        <div className="bg-gradient-to-r from-red-900/40 via-blue-900/30 to-red-900/40 p-5 text-center border-b border-red-500/20">
           <h2 className="text-2xl font-black text-white tracking-wider">ログインボーナス</h2>
-          <p className="text-xs text-cyan-400 mt-1 font-bold">
+          <p className="text-xs text-red-400 mt-1 font-bold">
             {loginStreak}日目 — 毎日ログインして報酬をゲット!
           </p>
         </div>
@@ -58,7 +58,7 @@ const LoginBonusModal: React.FC<LoginBonusModalProps> = ({
                     ${isToday
                       ? alreadyClaimed
                         ? 'border-green-400/60 bg-green-900/20 shadow-[0_0_15px_rgba(74,222,128,0.2)]'
-                        : 'border-cyan-400 bg-cyan-900/30 shadow-[0_0_20px_rgba(6,182,212,0.3)] animate-pulse'
+                        : 'border-red-400 bg-red-900/30 shadow-[0_0_20px_rgba(6,182,212,0.3)] animate-pulse'
                       : isCompleted
                         ? 'border-green-600/40 bg-green-900/10'
                         : 'border-slate-700/40 bg-slate-900/30'
@@ -67,7 +67,7 @@ const LoginBonusModal: React.FC<LoginBonusModalProps> = ({
                 >
                   <span className="text-[10px] text-gray-500 font-bold mb-0.5">{dayNum}日</span>
                   <span className="text-lg">{isCompleted || (isToday && alreadyClaimed) ? '✅' : day.icon}</span>
-                  <span className={`text-[9px] font-bold mt-0.5 ${isFuture ? 'text-gray-600' : 'text-cyan-400'}`}>
+                  <span className={`text-[9px] font-bold mt-0.5 ${isFuture ? 'text-gray-600' : 'text-red-400'}`}>
                     {day.label}
                   </span>
                 </div>
@@ -78,12 +78,12 @@ const LoginBonusModal: React.FC<LoginBonusModalProps> = ({
           {/* Today's Reward */}
           {!alreadyClaimed ? (
             <div className="text-center">
-              <p className="text-sm text-cyan-300 mb-3 font-bold">
+              <p className="text-sm text-red-300 mb-3 font-bold">
                 今日の報酬: <span className="text-amber-400 text-lg">{todayReward} MP</span>
               </p>
               <button
                 onClick={onClaim}
-                className="w-full py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-black text-lg rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] active:scale-95"
+                className="w-full py-3 bg-gradient-to-r from-red-600 to-blue-600 hover:from-red-500 hover:to-blue-500 text-white font-black text-lg rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] active:scale-95"
               >
                 受け取る
               </button>
@@ -95,7 +95,7 @@ const LoginBonusModal: React.FC<LoginBonusModalProps> = ({
               </p>
               <button
                 onClick={onClose}
-                className="w-full py-3 border border-cyan-500/30 text-cyan-400 font-bold rounded-xl hover:bg-cyan-900/20 transition-all"
+                className="w-full py-3 border border-red-500/30 text-red-400 font-bold rounded-xl hover:bg-red-900/20 transition-all"
               >
                 閉じる
               </button>

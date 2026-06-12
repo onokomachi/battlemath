@@ -150,15 +150,15 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({ ownedCards, onDeckSubmit, onB
     <div className="w-full h-full flex flex-col items-center p-3 sm:p-4 text-white overflow-hidden">
       <header className="text-center mb-3 sm:mb-4 flex-shrink-0">
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-hologram tracking-[0.1em] mb-1">デッキ編成</h1>
-        <p className="text-xs sm:text-sm text-cyan-400 font-bold">カードを選んでデッキを作ろう: {deck.length} / {DECK_SIZE}枚</p>
+        <p className="text-xs sm:text-sm text-red-400 font-bold">カードを選んでデッキを作ろう: {deck.length} / {DECK_SIZE}枚</p>
       </header>
 
       <div className="w-full max-w-7xl flex-grow flex gap-3 sm:gap-4 overflow-hidden min-h-0">
         {/* 所持カード */}
-        <div className="w-1/2 flex flex-col hud-panel rounded-2xl p-3 sm:p-4 border-cyan-500/20 shadow-2xl relative">
+        <div className="w-1/2 flex flex-col hud-panel rounded-2xl p-3 sm:p-4 border-red-500/20 shadow-2xl relative">
           <div className="corner-accent lt"></div>
           <div className="flex items-center justify-between mb-2 flex-shrink-0">
-            <h2 className="text-xs sm:text-sm font-bold text-cyan-400">所持カード ({filteredAndSortedCards.length}枚)</h2>
+            <h2 className="text-xs sm:text-sm font-bold text-red-400">所持カード ({filteredAndSortedCards.length}枚)</h2>
           </div>
 
           {/* Sort & Filter Controls */}
@@ -171,8 +171,8 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({ ownedCards, onDeckSubmit, onB
                   onClick={() => setSortMode(mode)}
                   className={`px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold border transition-all ${
                     sortMode === mode
-                      ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-300'
-                      : 'bg-slate-900/40 border-slate-700 text-slate-400 hover:border-cyan-600/40'
+                      ? 'bg-red-500/20 border-red-400/50 text-red-300'
+                      : 'bg-slate-900/40 border-slate-700 text-slate-400 hover:border-red-600/40'
                   }`}
                 >
                   {label}
@@ -184,7 +184,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({ ownedCards, onDeckSubmit, onB
             <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
-              className="bg-slate-900/80 border border-cyan-500/20 text-cyan-200 text-[10px] sm:text-xs rounded px-1.5 py-0.5 outline-none"
+              className="bg-slate-900/80 border border-red-500/20 text-red-200 text-[10px] sm:text-xs rounded px-1.5 py-0.5 outline-none"
             >
               <option value="all">全章</option>
               {categories.map(cat => (
@@ -196,7 +196,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({ ownedCards, onDeckSubmit, onB
             <select
               value={filterDifficulty}
               onChange={(e) => setFilterDifficulty(Number(e.target.value))}
-              className="bg-slate-900/80 border border-cyan-500/20 text-cyan-200 text-[10px] sm:text-xs rounded px-1.5 py-0.5 outline-none"
+              className="bg-slate-900/80 border border-red-500/20 text-red-200 text-[10px] sm:text-xs rounded px-1.5 py-0.5 outline-none"
             >
               <option value={0}>全Lv</option>
               {difficulties.map(d => (
@@ -217,7 +217,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({ ownedCards, onDeckSubmit, onB
                     </div>
                   </div>
                   {!isDimmed && (
-                    <div className="absolute top-0 right-1 bg-cyan-600 text-slate-950 text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-white/20 shadow-lg">
+                    <div className="absolute top-0 right-1 bg-red-600 text-slate-950 text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-white/20 shadow-lg">
                       {MAX_DUPLICATES - countInDeck}
                     </div>
                   )}
@@ -228,10 +228,10 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({ ownedCards, onDeckSubmit, onB
         </div>
 
         {/* デッキ */}
-        <div className="w-1/2 flex flex-col hud-panel rounded-2xl p-3 sm:p-4 border-cyan-400/20 shadow-2xl relative bg-blue-900/5">
+        <div className="w-1/2 flex flex-col hud-panel rounded-2xl p-3 sm:p-4 border-red-400/20 shadow-2xl relative bg-blue-900/5">
           <div className="corner-accent rt"></div>
           <div className="flex items-center justify-between mb-2 flex-shrink-0">
-            <h2 className="text-xs sm:text-sm font-bold text-cyan-200">デッキ ({deck.length}/{DECK_SIZE})</h2>
+            <h2 className="text-xs sm:text-sm font-bold text-red-200">デッキ ({deck.length}/{DECK_SIZE})</h2>
             <div className="flex gap-1">
               <button
                 onClick={() => setShowSavedDecks(true)}
@@ -242,7 +242,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({ ownedCards, onDeckSubmit, onB
               <button
                 onClick={() => isDeckValid ? setShowSaveInput(true) : null}
                 disabled={!isDeckValid}
-                className="px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold border bg-slate-900/40 border-cyan-500/30 text-cyan-300 hover:bg-cyan-900/20 transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+                className="px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold border bg-slate-900/40 border-red-500/30 text-red-300 hover:bg-red-900/20 transition-all disabled:opacity-20 disabled:cursor-not-allowed"
               >
                 保存
               </button>
@@ -265,14 +265,14 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({ ownedCards, onDeckSubmit, onB
                 onChange={(e) => setSaveDeckName(e.target.value)}
                 placeholder="デッキ名を入力..."
                 maxLength={20}
-                className="flex-grow bg-slate-950/60 border border-cyan-500/30 rounded-lg px-3 py-1.5 text-xs text-cyan-200 outline-none placeholder:text-cyan-800"
+                className="flex-grow bg-slate-950/60 border border-red-500/30 rounded-lg px-3 py-1.5 text-xs text-red-200 outline-none placeholder:text-red-800"
                 autoFocus
                 onKeyDown={(e) => e.key === 'Enter' && handleSaveDeck()}
               />
               <button
                 onClick={handleSaveDeck}
                 disabled={!saveDeckName.trim()}
-                className="px-3 py-1.5 rounded-lg text-xs font-bold bg-cyan-600 text-slate-950 hover:bg-cyan-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-600 text-slate-950 hover:bg-red-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               >
                 保存
               </button>
@@ -297,8 +297,8 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({ ownedCards, onDeckSubmit, onB
               </div>
             ))}
             {Array.from({ length: DECK_SIZE - deck.length }).map((_, i) => (
-              <div key={`empty-${i}`} className="w-full aspect-[48/72] rounded-xl border border-dashed border-cyan-900/30 flex items-center justify-center bg-slate-950/20">
-                <span className="text-[10px] text-cyan-900 font-bold">空き</span>
+              <div key={`empty-${i}`} className="w-full aspect-[48/72] rounded-xl border border-dashed border-red-900/30 flex items-center justify-center bg-slate-950/20">
+                <span className="text-[10px] text-red-900 font-bold">空き</span>
               </div>
             ))}
           </div>
@@ -347,7 +347,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({ ownedCards, onDeckSubmit, onB
           onClick={() => onDeckSubmit(deck, 'cpu', battleFormat)}
           disabled={!isDeckValid}
           className={`px-8 py-3 rounded-xl text-base font-bold transition-all transform hover:scale-105 shadow-lg
-            ${!isDeckValid ? 'opacity-20 cursor-not-allowed bg-slate-800 text-gray-500 border border-slate-700' : 'bg-blue-600 text-white border-cyan-400/50 hover:bg-blue-500'}`}
+            ${!isDeckValid ? 'opacity-20 cursor-not-allowed bg-slate-800 text-gray-500 border border-slate-700' : 'bg-blue-600 text-white border-red-400/50 hover:bg-blue-500'}`}
         >
           {isDeckValid ? 'CPU対戦' : `あと${DECK_SIZE - deck.length}枚`}
         </button>
@@ -399,7 +399,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({ ownedCards, onDeckSubmit, onB
             )}
             <button
               onClick={() => setShowSavedDecks(false)}
-              className="mt-4 w-full btn-tactical py-2.5 rounded-lg font-bold text-sm text-cyan-400 border-cyan-400/40 hover:bg-cyan-400/20"
+              className="mt-4 w-full btn-tactical py-2.5 rounded-lg font-bold text-sm text-red-400 border-red-400/40 hover:bg-red-400/20"
             >
               閉じる
             </button>

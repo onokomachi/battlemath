@@ -113,7 +113,7 @@ const TutorialBattle: React.FC<TutorialBattleProps> = ({ onComplete, onSkip }) =
             <div
               key={i}
               className={`h-1 flex-1 rounded-full transition-all duration-500 ${
-                i <= step ? 'bg-cyan-400' : 'bg-slate-700'
+                i <= step ? 'bg-red-400' : 'bg-slate-700'
               }`}
             />
           ))}
@@ -125,10 +125,10 @@ const TutorialBattle: React.FC<TutorialBattleProps> = ({ onComplete, onSkip }) =
       {step >= 2 && (
         <div className="absolute top-16 left-1/2 -translate-x-1/2 flex gap-8 items-center z-10">
           <div className="text-center">
-            <span className="text-[10px] text-cyan-400 font-bold">あなた</span>
+            <span className="text-[10px] text-red-400 font-bold">あなた</span>
             <div className="w-24 bg-slate-800 rounded-full h-2 mt-1">
               <div
-                className="h-full rounded-full bg-cyan-500 transition-all duration-700"
+                className="h-full rounded-full bg-red-500 transition-all duration-700"
                 style={{ width: `${(tutorialPlayerHP / 40) * 100}%` }}
               />
             </div>
@@ -149,8 +149,8 @@ const TutorialBattle: React.FC<TutorialBattleProps> = ({ onComplete, onSkip }) =
       )}
 
       {/* Main content */}
-      <div className="max-w-lg w-full bg-slate-950/90 border border-cyan-500/30 rounded-2xl p-6 shadow-[0_0_60px_rgba(6,182,212,0.1)] animate-math-fade-in">
-        <h2 className="text-xl font-black text-cyan-300 mb-3 tracking-wider">
+      <div className="max-w-lg w-full bg-slate-950/90 border border-red-500/30 rounded-2xl p-6 shadow-[0_0_60px_rgba(6,182,212,0.1)] animate-math-fade-in">
+        <h2 className="text-xl font-black text-red-300 mb-3 tracking-wider">
           {current.title}
         </h2>
         <p className="text-sm text-gray-300 whitespace-pre-line leading-relaxed mb-4">
@@ -159,7 +159,7 @@ const TutorialBattle: React.FC<TutorialBattleProps> = ({ onComplete, onSkip }) =
 
         {/* Question area */}
         {hasQuestion && !answered && (
-          <div className="bg-slate-900/80 rounded-xl p-4 border border-cyan-900/40 mb-4">
+          <div className="bg-slate-900/80 rounded-xl p-4 border border-red-900/40 mb-4">
             <p className="text-center text-lg font-bold text-white mb-3">{current.question}</p>
             <div className="flex gap-2">
               <input
@@ -168,12 +168,12 @@ const TutorialBattle: React.FC<TutorialBattleProps> = ({ onComplete, onSkip }) =
                 onChange={e => setUserAnswer(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleAnswer()}
                 placeholder="答えを入力..."
-                className="flex-1 bg-slate-800 border border-cyan-700/40 rounded-lg px-3 py-2 text-white text-center font-mono focus:outline-none focus:border-cyan-400"
+                className="flex-1 bg-slate-800 border border-red-700/40 rounded-lg px-3 py-2 text-white text-center font-mono focus:outline-none focus:border-red-400"
                 autoFocus
               />
               <button
                 onClick={handleAnswer}
-                className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-4 py-2 rounded-lg transition-colors"
+                className="bg-red-600 hover:bg-red-500 text-white font-bold px-4 py-2 rounded-lg transition-colors"
               >
                 回答
               </button>
