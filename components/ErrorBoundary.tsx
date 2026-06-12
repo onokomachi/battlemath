@@ -36,7 +36,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
             </p>
             <button
               onClick={() => window.location.reload()}
-              className="bg-cyan-700 hover:bg-cyan-600 text-white font-bold px-8 py-3 rounded-lg transition-colors"
+              className="bg-red-700 hover:bg-red-600 text-white font-bold px-8 py-3 rounded-lg transition-colors"
             >
               再読み込み
             </button>

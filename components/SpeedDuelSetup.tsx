@@ -276,7 +276,7 @@ const SpeedDuelSetup: React.FC<SpeedDuelSetupProps> = ({ onStart, onBack, isLogg
           >
             <div className="absolute -right-4 -bottom-4 text-5xl opacity-[0.08] group-hover:opacity-[0.15] transition-all">🤖</div>
             <div className="text-lg font-black">CPU対戦</div>
-            <div className="text-[10px] text-cyan-400 opacity-70 mt-1">コンピュータと早押し勝負</div>
+            <div className="text-[10px] text-red-400 opacity-70 mt-1">コンピュータと早押し勝負</div>
           </button>
           <button
             onClick={() => handleStart('pvp')}
@@ -285,7 +285,7 @@ const SpeedDuelSetup: React.FC<SpeedDuelSetupProps> = ({ onStart, onBack, isLogg
           >
             <div className="absolute -right-4 -bottom-4 text-5xl opacity-[0.08] group-hover:opacity-[0.15] transition-all">⚔</div>
             <div className="text-lg font-black">プレイヤー対戦</div>
-            <div className="text-[10px] text-cyan-400 opacity-70 mt-1">
+            <div className="text-[10px] text-red-400 opacity-70 mt-1">
               {isLoggedIn ? 'オンラインで早押し勝負' : 'ログインが必要です'}
             </div>
           </button>

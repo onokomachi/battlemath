@@ -33,14 +33,14 @@ const PlayerStatus: React.FC<Omit<MainMenuProps, 'onSelectMode'>> = ({
   const expPercentage = (playerExp / expForNextLevel) * 100;
 
   return (
-    <div className="absolute top-4 left-4 sm:top-6 sm:left-6 w-64 sm:w-72 md:w-80 hud-panel rounded-xl p-3 sm:p-5 shadow-2xl border-l-4 border-l-cyan-500 z-10">
+    <div className="absolute top-4 left-4 sm:top-6 sm:left-6 w-64 sm:w-72 md:w-80 hud-panel rounded-xl p-3 sm:p-5 shadow-2xl border-l-4 border-l-red-500 z-10">
       <div className="corner-accent rt" />
       <div className="corner-accent rb" />
       {/* User info */}
       {user && (
-        <div className="flex items-center gap-2 mb-3 pb-3 border-b border-cyan-900/40">
+        <div className="flex items-center gap-2 mb-3 pb-3 border-b border-red-900/40">
           {user.photoURL && (
-            <img src={user.photoURL} alt="" className="w-8 h-8 rounded-full border border-cyan-700/50" />
+            <img src={user.photoURL} alt="" className="w-8 h-8 rounded-full border border-red-700/50" />
           )}
           <div className="flex-1 min-w-0">
             <p className="text-xs text-white font-bold truncate">
@@ -73,7 +73,7 @@ const PlayerStatus: React.FC<Omit<MainMenuProps, 'onSelectMode'>> = ({
       )}
       <div className="flex justify-between items-end mb-3">
         <div>
-          <span className="text-[10px] text-cyan-400 font-bold tracking-wide block mb-1">
+          <span className="text-[10px] text-red-400 font-bold tracking-wide block mb-1">
             プレイヤーレベル
           </span>
           <span className="font-bold text-3xl text-white">
@@ -81,13 +81,13 @@ const PlayerStatus: React.FC<Omit<MainMenuProps, 'onSelectMode'>> = ({
           </span>
         </div>
         <div className="text-right">
-          <span className="text-[9px] font-mono text-cyan-500/70 block">経験値</span>
+          <span className="text-[9px] font-mono text-red-500/70 block">経験値</span>
           <span className="text-xs font-mono text-gray-300">{playerExp} / {expForNextLevel}</span>
         </div>
       </div>
-      <div className="w-full bg-slate-900/80 rounded-full h-1.5 overflow-hidden border border-cyan-900/50">
+      <div className="w-full bg-slate-900/80 rounded-full h-1.5 overflow-hidden border border-red-900/50">
         <div
-          className="bg-gradient-to-r from-blue-600 via-cyan-400 to-white h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_cyan]"
+          className="bg-gradient-to-r from-blue-600 via-red-400 to-white h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_#ef4444]"
           style={{ width: `${expPercentage}%` }}
         />
       </div>
@@ -224,7 +224,7 @@ const MainMenu: React.FC<MainMenuProps> = ({
         {onOpenGameMaster && (
           <button
             onClick={onOpenGameMaster}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold border border-gray-700/50 text-gray-500 hover:text-cyan-400 hover:border-cyan-500/30 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold border border-gray-700/50 text-gray-500 hover:text-red-400 hover:border-red-500/30 transition-colors"
             title="管理画面"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -237,16 +237,16 @@ const MainMenu: React.FC<MainMenuProps> = ({
       </div>
 
       <div className="text-center mb-8 md:mb-16 relative">
-        <div className="absolute -inset-20 bg-blue-600/10 blur-[120px] rounded-full animate-pulse" />
-        <h1 className="text-4xl sm:text-7xl md:text-9xl font-black text-hologram mb-4 tracking-[0.1em] sm:tracking-[0.2em]">
+        <div className="absolute -inset-20 bg-red-600/15 blur-[120px] rounded-full animate-pulse" />
+        <h1 className="text-4xl sm:text-7xl md:text-9xl font-black text-hologram mb-4 tracking-[0.04em] sm:tracking-[0.06em] pr-[0.1em]">
           BATTLE-MATH
         </h1>
         <div className="flex items-center justify-center gap-6">
-          <div className="h-[1px] w-20 bg-gradient-to-r from-transparent via-cyan-500 to-transparent" />
-          <p className="text-xs md:text-sm text-cyan-300 font-bold tracking-[0.6em] uppercase opacity-80">
+          <div className="h-[1px] w-20 bg-gradient-to-r from-transparent via-red-500 to-transparent" />
+          <p className="text-xs md:text-sm text-red-300 font-bold tracking-[0.6em] uppercase opacity-80">
             Universal Protocol v3.0
           </p>
-          <div className="h-[1px] w-20 bg-gradient-to-l from-transparent via-cyan-500 to-transparent" />
+          <div className="h-[1px] w-20 bg-gradient-to-l from-transparent via-red-500 to-transparent" />
         </div>
       </div>
 
@@ -275,7 +275,7 @@ const MainMenu: React.FC<MainMenuProps> = ({
             <div className="absolute -right-4 -bottom-4 text-6xl opacity-[0.08] group-hover:opacity-[0.15] group-hover:scale-125 transition-all duration-500">
               {item.icon}
             </div>
-            <span className="text-xl sm:text-2xl md:text-3xl font-bold group-hover:text-cyan-300 transition-colors tracking-wide">
+            <span className="text-xl sm:text-2xl md:text-3xl font-bold group-hover:text-red-300 transition-colors tracking-wide">
               {item.label}
             </span>
             <span className="text-xs text-blue-300 font-bold opacity-70">
@@ -308,7 +308,7 @@ const MainMenu: React.FC<MainMenuProps> = ({
       )}
 
       <div className="absolute bottom-10 flex flex-col items-center gap-2">
-        <div className="w-1 h-1 bg-cyan-400 rounded-full animate-ping" />
+        <div className="w-1 h-1 bg-red-400 rounded-full animate-ping" />
       </div>
 
       {/* Presented by */}

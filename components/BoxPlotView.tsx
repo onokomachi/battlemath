@@ -58,7 +58,7 @@ const BoxPlotView: React.FC<BoxPlotViewProps> = ({ datasets, hideValue }) => {
   if (!ticks.includes(globalMax)) ticks.push(globalMax);
 
   const boxHeight = 30;
-  const colors = ['#22d3ee', '#f59e0b']; // cyan, amber
+  const colors = ['#f87171', '#f59e0b']; // red, amber
 
   return (
     <div className="w-full flex justify-center my-2">
@@ -69,7 +69,7 @@ const BoxPlotView: React.FC<BoxPlotViewProps> = ({ datasets, hideValue }) => {
       >
         {/* 背景 */}
         <rect x={plotLeft} y="10" width={plotWidth} height={svgHeight - 35} rx="4"
-          fill="rgba(15,23,42,0.6)" stroke="rgba(34,211,238,0.15)" strokeWidth="1" />
+          fill="rgba(15,23,42,0.6)" stroke="rgba(239,68,68,0.15)" strokeWidth="1" />
 
         {/* 目盛り */}
         {ticks.map(v => {
@@ -77,9 +77,9 @@ const BoxPlotView: React.FC<BoxPlotViewProps> = ({ datasets, hideValue }) => {
           return (
             <g key={v}>
               <line x1={x} y1={svgHeight - 22} x2={x} y2="10"
-                stroke="rgba(34,211,238,0.1)" strokeWidth="1" strokeDasharray="3,3" />
+                stroke="rgba(239,68,68,0.1)" strokeWidth="1" strokeDasharray="3,3" />
               <text x={x} y={svgHeight - 8} textAnchor="middle"
-                fill="rgba(34,211,238,0.7)" fontSize="10" fontFamily="monospace">
+                fill="rgba(239,68,68,0.7)" fontSize="10" fontFamily="monospace">
                 {v}
               </text>
             </g>

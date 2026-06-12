@@ -48,7 +48,7 @@ const GraphingProblemView = forwardRef<ProblemViewRef | null, GraphingProblemVie
     }
 
     // Draw X and Y Axes (Thicker and Cyan for differentiation)
-    ctx.strokeStyle = '#22d3ee'; // Stellar Cyan
+    ctx.strokeStyle = '#f87171'; // Accent Red
     ctx.lineWidth = 3;
     
     // X-Axis
@@ -109,7 +109,7 @@ const GraphingProblemView = forwardRef<ProblemViewRef | null, GraphingProblemVie
       
     ctx.fillStyle = '#ffffff'; 
     ctx.shadowBlur = 10;
-    ctx.shadowColor = '#22d3ee';
+    ctx.shadowColor = '#f87171';
     points.forEach(p => {
         ctx.beginPath();
         ctx.arc(centerX + p.x * gridSize, centerY - p.y * gridSize, 6, 0, 2 * Math.PI);
@@ -202,20 +202,20 @@ const GraphingProblemView = forwardRef<ProblemViewRef | null, GraphingProblemVie
   return (
     <div className="w-full text-center">
       <p className="mb-4 text-white text-xl whitespace-pre-line font-mono tracking-tighter">{data.question}</p>
-      <div className="relative p-1 bg-cyan-500/20 rounded-xl overflow-hidden shadow-[0_0_20px_rgba(34,211,238,0.2)]">
+      <div className="relative p-1 bg-red-500/20 rounded-xl overflow-hidden shadow-[0_0_20px_rgba(239,68,68,0.2)]">
         <canvas
             ref={canvasRef}
             onClick={handleCanvasClick}
             className="w-full h-64 md:h-80 bg-black rounded-lg cursor-crosshair"
         />
       </div>
-      <div className='mt-4 p-3 bg-slate-900/80 rounded-lg border border-cyan-500/20 backdrop-blur-md'>
-          <p className="text-xs text-cyan-500 font-black uppercase tracking-widest">Initialization_Status</p>
+      <div className='mt-4 p-3 bg-slate-900/80 rounded-lg border border-red-500/20 backdrop-blur-md'>
+          <p className="text-xs text-red-500 font-black uppercase tracking-widest">Initialization_Status</p>
           <p className="text-sm text-white/70 mt-1">グラフ上の点を2つプロットして直線を確定してください。</p>
           {points.length > 0 && 
             <div className="flex gap-2 justify-center mt-2">
                 {points.map((p, i) => (
-                    <span key={i} className="text-[10px] font-mono bg-cyan-950 text-cyan-300 px-2 py-1 rounded border border-cyan-400/30">
+                    <span key={i} className="text-[10px] font-mono bg-red-950 text-red-300 px-2 py-1 rounded border border-red-400/30">
                         Node_{i+1}: ({p.x}, {p.y})
                     </span>
                 ))}

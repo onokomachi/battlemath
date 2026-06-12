@@ -1902,7 +1902,7 @@ const App: React.FC = () => {
         {/* PvP再接続プロンプト */}
         {resumeCandidate && (gameState === 'main_menu' || gameState === 'login_screen') && (
           <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-            <div className="max-w-sm w-full bg-slate-900 border border-cyan-700/50 rounded-2xl p-6 text-center">
+            <div className="max-w-sm w-full bg-slate-900 border border-red-700/50 rounded-2xl p-6 text-center">
               <p className="text-3xl mb-3">🔌</p>
               <h2 className="text-lg font-bold text-white mb-2">進行中の対戦があります</h2>
               <p className="text-xs text-gray-400 mb-6">

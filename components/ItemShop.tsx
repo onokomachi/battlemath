@@ -145,7 +145,7 @@ const ItemShop: React.FC<ItemShopProps> = ({
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-white text-sm font-bold">{title.name}</span>
                             {isEquipped && (
-                              <span className="text-[9px] bg-cyan-500/20 text-cyan-300 px-1.5 py-0.5 rounded font-bold">装備中</span>
+                              <span className="text-[9px] bg-red-500/20 text-red-300 px-1.5 py-0.5 rounded font-bold">装備中</span>
                             )}
                             {title.isMonthly && (
                               <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-bold">月次限定</span>
@@ -159,7 +159,7 @@ const ItemShop: React.FC<ItemShopProps> = ({
                           className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-colors ${
                             isEquipped
                               ? 'border-gray-600 text-gray-400 hover:text-white'
-                              : 'border-cyan-600/40 text-cyan-400 hover:bg-cyan-900/20'
+                              : 'border-red-600/40 text-red-400 hover:bg-red-900/20'
                           }`}
                         >
                           {isEquipped ? '外す' : '装備'}
@@ -212,13 +212,13 @@ const ItemShop: React.FC<ItemShopProps> = ({
             const isApplied = equippedTheme === item.id;
             const canAfford = mathPoints >= item.cost;
             return (
-              <div key={item.id} className={`rounded-lg p-3 border ${isApplied ? 'border-cyan-600/40 bg-cyan-900/10' : owned ? 'border-green-700/30 bg-green-900/10' : 'border-slate-700/30 bg-slate-900/30'}`}>
+              <div key={item.id} className={`rounded-lg p-3 border ${isApplied ? 'border-red-600/40 bg-red-900/10' : owned ? 'border-green-700/30 bg-green-900/10' : 'border-slate-700/30 bg-slate-900/30'}`}>
                 <div className="flex items-center gap-3">
                   <div className="text-2xl flex-shrink-0 w-10 text-center">{item.icon}</div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-white text-sm font-bold">{item.name}</span>
-                      {isApplied && <span className="text-[9px] bg-cyan-500/20 text-cyan-300 px-1.5 py-0.5 rounded font-bold">適用中</span>}
+                      {isApplied && <span className="text-[9px] bg-red-500/20 text-red-300 px-1.5 py-0.5 rounded font-bold">適用中</span>}
                     </div>
                     <p className="text-[10px] text-gray-500 mt-0.5">{item.description}</p>
                   </div>
@@ -226,7 +226,7 @@ const ItemShop: React.FC<ItemShopProps> = ({
                     {owned ? (
                       <button
                         onClick={() => onEquipTheme(isApplied ? null : item.id)}
-                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-colors ${isApplied ? 'border-gray-600 text-gray-400 hover:text-white' : 'border-cyan-600/40 text-cyan-400 hover:bg-cyan-900/20'}`}
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-colors ${isApplied ? 'border-gray-600 text-gray-400 hover:text-white' : 'border-red-600/40 text-red-400 hover:bg-red-900/20'}`}
                       >
                         {isApplied ? '解除' : '適用'}
                       </button>

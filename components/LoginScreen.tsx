@@ -74,13 +74,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
   if (currentUser && (showProfileSetup || !studentProfile)) {
     return (
       <div className="w-full h-full flex flex-col items-center justify-start sm:justify-center p-4 pt-8 sm:pt-4 text-white relative overflow-y-auto">
-        <div className="absolute inset-0 bg-gradient-radial from-cyan-900/20 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-radial from-red-900/20 via-transparent to-transparent pointer-events-none" />
 
         <div className="text-center mb-6 relative">
           <h1 className="text-3xl md:text-5xl font-black text-hologram mb-2 tracking-[0.15em]">
             STUDENT ID
           </h1>
-          <p className="text-xs text-cyan-400 tracking-[0.3em] uppercase">
+          <p className="text-xs text-red-400 tracking-[0.3em] uppercase">
             学校・学年・組・番号を入力してください
           </p>
         </div>
@@ -88,7 +88,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
         <div className="w-full max-w-lg hud-panel rounded-2xl p-6 sm:p-8 shadow-2xl space-y-5 max-h-[85vh] overflow-y-auto">
           {/* 学校 */}
           <div>
-            <label className="block text-xs text-cyan-400 tracking-widest uppercase font-bold mb-3">
+            <label className="block text-xs text-red-400 tracking-widest uppercase font-bold mb-3">
               学校 (School)
             </label>
             <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
@@ -98,8 +98,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                   onClick={() => setSelectedSchool(s.name)}
                   className={`py-2.5 px-3 rounded-lg text-left transition-all ${
                     selectedSchool === s.name
-                      ? 'bg-cyan-600 text-white shadow-[0_0_15px_rgba(0,200,255,0.3)] scale-[1.02]'
-                      : 'bg-gray-800 text-gray-400 border border-gray-700 hover:border-cyan-600 hover:text-white'
+                      ? 'bg-red-600 text-white shadow-[0_0_15px_rgba(0,200,255,0.3)] scale-[1.02]'
+                      : 'bg-gray-800 text-gray-400 border border-gray-700 hover:border-red-600 hover:text-white'
                   }`}
                 >
                   <span className="text-sm font-bold block leading-tight">{s.name}</span>
@@ -111,7 +111,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
 
           {/* 学年 */}
           <div>
-            <label className="block text-xs text-cyan-400 tracking-widest uppercase font-bold mb-3">
+            <label className="block text-xs text-red-400 tracking-widest uppercase font-bold mb-3">
               学年 (Grade)
             </label>
             <div className="grid grid-cols-3 gap-3">
@@ -121,8 +121,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                   onClick={() => setSelectedGrade(g)}
                   className={`py-4 rounded-xl text-2xl font-bold transition-all ${
                     selectedGrade === g
-                      ? 'bg-cyan-600 text-white shadow-[0_0_20px_rgba(0,200,255,0.4)] scale-105'
-                      : 'bg-gray-800 text-gray-400 border border-gray-700 hover:border-cyan-600 hover:text-white'
+                      ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(0,200,255,0.4)] scale-105'
+                      : 'bg-gray-800 text-gray-400 border border-gray-700 hover:border-red-600 hover:text-white'
                   }`}
                 >
                   {g}年
@@ -133,7 +133,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
 
           {/* 組 */}
           <div>
-            <label className="block text-xs text-cyan-400 tracking-widest uppercase font-bold mb-3">
+            <label className="block text-xs text-red-400 tracking-widest uppercase font-bold mb-3">
               組 (Class)
             </label>
             <div className="grid grid-cols-5 gap-2">
@@ -143,8 +143,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                   onClick={() => setSelectedClass(c)}
                   className={`py-3 rounded-lg text-lg font-bold transition-all ${
                     selectedClass === c
-                      ? 'bg-cyan-600 text-white shadow-[0_0_15px_rgba(0,200,255,0.3)] scale-105'
-                      : 'bg-gray-800 text-gray-400 border border-gray-700 hover:border-cyan-600 hover:text-white'
+                      ? 'bg-red-600 text-white shadow-[0_0_15px_rgba(0,200,255,0.3)] scale-105'
+                      : 'bg-gray-800 text-gray-400 border border-gray-700 hover:border-red-600 hover:text-white'
                   }`}
                 >
                   {c}組
@@ -155,7 +155,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
 
           {/* 出席番号 */}
           <div>
-            <label className="block text-xs text-cyan-400 tracking-widest uppercase font-bold mb-3">
+            <label className="block text-xs text-red-400 tracking-widest uppercase font-bold mb-3">
               出席番号 (Number)
             </label>
             <div className="grid grid-cols-9 gap-1.5 max-h-40 overflow-y-auto pr-1">
@@ -165,8 +165,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                   onClick={() => setSelectedNumber(n)}
                   className={`py-2 rounded text-sm font-bold transition-all ${
                     selectedNumber === n
-                      ? 'bg-cyan-600 text-white shadow-[0_0_10px_rgba(0,200,255,0.3)]'
-                      : 'bg-gray-800 text-gray-500 border border-gray-700 hover:border-cyan-600 hover:text-white'
+                      ? 'bg-red-600 text-white shadow-[0_0_10px_rgba(0,200,255,0.3)]'
+                      : 'bg-gray-800 text-gray-500 border border-gray-700 hover:border-red-600 hover:text-white'
                   }`}
                 >
                   {n}
@@ -179,10 +179,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
           <div className="pt-4 border-t border-gray-700">
             <div className="text-center mb-4">
               <p className="text-xs text-gray-500 mb-1">選択中</p>
-              <p className="text-lg font-bold text-cyan-300 tracking-wide">
+              <p className="text-lg font-bold text-red-300 tracking-wide">
                 {selectedSchool}
               </p>
-              <p className="text-xl font-bold text-cyan-300 tracking-widest">
+              <p className="text-xl font-bold text-red-300 tracking-widest">
                 {selectedGrade}年{selectedClass}組{selectedNumber}番
               </p>
             </div>
@@ -201,22 +201,22 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
   return (
     <div className="w-full h-full flex flex-col items-center justify-start sm:justify-center p-4 pt-8 sm:pt-4 text-white relative overflow-y-auto">
       {/* Background glow */}
-      <div className="absolute inset-0 bg-gradient-radial from-cyan-900/20 via-transparent to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-radial from-red-900/20 via-transparent to-transparent pointer-events-none" />
 
       {/* Title */}
       <div className="text-center mb-8 sm:mb-16 relative">
-        <div className="absolute -inset-20 bg-blue-600/10 blur-[120px] rounded-full animate-pulse" />
-        <h1 className="text-7xl md:text-9xl font-black text-hologram mb-4 tracking-[0.2em]">
+        <div className="absolute -inset-20 bg-red-600/15 blur-[120px] rounded-full animate-pulse" />
+        <h1 className="text-7xl md:text-9xl font-black text-hologram mb-4 tracking-[0.06em] pr-[0.1em]">
           BATTLE-MATH
         </h1>
         <div className="flex items-center justify-center gap-6 mb-2">
-          <div className="h-[1px] w-20 bg-gradient-to-r from-transparent via-cyan-500 to-transparent" />
-          <p className="text-xs md:text-sm text-cyan-300 font-bold tracking-[0.6em] uppercase opacity-80">
+          <div className="h-[1px] w-20 bg-gradient-to-r from-transparent via-red-500 to-transparent" />
+          <p className="text-xs md:text-sm text-red-300 font-bold tracking-[0.6em] uppercase opacity-80">
             Online Protocol v3.0
           </p>
-          <div className="h-[1px] w-20 bg-gradient-to-l from-transparent via-cyan-500 to-transparent" />
+          <div className="h-[1px] w-20 bg-gradient-to-l from-transparent via-red-500 to-transparent" />
         </div>
-        <p className="text-xs text-cyan-500/60 font-mono tracking-widest">
+        <p className="text-xs text-red-500/60 font-mono tracking-widest">
           数学でバトル。全国のプレイヤーと対戦せよ。
         </p>
       </div>
@@ -231,11 +231,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                 <img
                   src={currentUser.photoURL}
                   alt="avatar"
-                  className="w-16 h-16 rounded-full border-2 border-cyan-500 shadow-[0_0_12px_cyan]"
+                  className="w-16 h-16 rounded-full border-2 border-red-500 shadow-[0_0_12px_#ef4444]"
                 />
               )}
               <div>
-                <p className="text-xs text-cyan-400 tracking-wide font-bold">
+                <p className="text-xs text-red-400 tracking-wide font-bold">
                   ログイン中
                 </p>
                 <p className="text-xl font-bold text-white">{currentUser.displayName}</p>
@@ -253,7 +253,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                         }
                         setShowProfileSetup(true);
                       }}
-                      className="ml-2 text-gray-500 hover:text-cyan-400 transition-colors"
+                      className="ml-2 text-gray-500 hover:text-red-400 transition-colors"
                       title="変更"
                     >
                       [変更]
@@ -265,11 +265,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
 
             <div className="flex gap-6 text-center">
               <div className="hud-panel rounded-lg px-4 py-2">
-                <p className="text-xs text-cyan-400 font-bold">レベル</p>
+                <p className="text-xs text-red-400 font-bold">レベル</p>
                 <p className="text-2xl font-bold text-white">{playerLevel}</p>
               </div>
               <div className="hud-panel rounded-lg px-4 py-2">
-                <p className="text-xs text-cyan-400 font-bold">ポイント</p>
+                <p className="text-xs text-red-400 font-bold">ポイント</p>
                 <p className="text-2xl font-bold text-amber-400">{mathPoints.toLocaleString()}</p>
               </div>
             </div>
@@ -337,7 +337,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
       </div>
 
       <div className="absolute bottom-8 flex flex-col items-center gap-2">
-        <div className="w-1 h-1 bg-cyan-400 rounded-full animate-ping" />
+        <div className="w-1 h-1 bg-red-400 rounded-full animate-ping" />
       </div>
     </div>
   );

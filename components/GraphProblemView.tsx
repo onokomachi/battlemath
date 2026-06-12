@@ -35,7 +35,7 @@ const GraphProblemView: React.FC<GraphProblemViewProps> = ({ lines = [], polygon
 
     let elements = `<defs><style>
         .grid-line { stroke: rgba(255, 255, 255, 0.25); stroke-width: 1; }
-        .axis-line { stroke: #22d3ee; stroke-width: 3; stroke-linecap: round; }
+        .axis-line { stroke: #f87171; stroke-width: 3; stroke-linecap: round; }
         .label-text { fill: rgba(255, 255, 255, 0.4); font-size: 11px; font-family: 'JetBrains Mono', monospace; font-weight: bold; }
         .line-label { font: bold 14px 'JetBrains Mono', sans-serif; text-shadow: 0 0 5px black; }
     </style></defs>`;
@@ -67,8 +67,8 @@ const GraphProblemView: React.FC<GraphProblemViewProps> = ({ lines = [], polygon
             const { x, y } = mapCoords(p.x, p.y, width, height);
             return `${x},${y}`;
         }).join(' ');
-        const color = polygon.color || 'rgba(34, 211, 238, 0.15)';
-        elements += `<polygon points="${pointsStr}" fill="${color}" stroke="rgba(34, 211, 238, 0.4)" stroke-width="1.5" />`;
+        const color = polygon.color || 'rgba(239, 68, 68, 0.15)';
+        elements += `<polygon points="${pointsStr}" fill="${color}" stroke="rgba(239, 68, 68, 0.4)" stroke-width="1.5" />`;
     }
 
     // Lines
@@ -118,7 +118,7 @@ const GraphProblemView: React.FC<GraphProblemViewProps> = ({ lines = [], polygon
   }, [draw]);
 
   return (
-    <div ref={containerRef} className="w-full h-full bg-black rounded-lg border border-cyan-500/10 shadow-inner">
+    <div ref={containerRef} className="w-full h-full bg-black rounded-lg border border-red-500/10 shadow-inner">
       <svg ref={svgRef}></svg>
     </div>
   );

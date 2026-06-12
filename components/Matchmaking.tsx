@@ -45,7 +45,7 @@ const Matchmaking: React.FC<MatchmakingProps> = ({ rooms, onJoinRoom, onCancel, 
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-3xl font-bold text-hologram tracking-wide">対戦マッチング</h2>
-            <p className={`text-xs font-bold mt-1 ${battleType === 'speed_duel' ? 'text-orange-400' : 'text-cyan-400'}`}>
+            <p className={`text-xs font-bold mt-1 ${battleType === 'speed_duel' ? 'text-orange-400' : 'text-red-400'}`}>
               {battleType === 'speed_duel' ? '⚡ スピードデュエル' : 'オンライン対戦'}
             </p>
           </div>
@@ -67,12 +67,12 @@ const Matchmaking: React.FC<MatchmakingProps> = ({ rooms, onJoinRoom, onCancel, 
 
         {/* Waiting status */}
         {currentRoomId && (
-          <div className="hud-panel rounded-xl p-4 mb-6 border border-cyan-800/50">
+          <div className="hud-panel rounded-xl p-4 mb-6 border border-red-800/50">
             <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-cyan-400 rounded-full animate-ping" />
+              <div className="w-2 h-2 bg-red-400 rounded-full animate-ping" />
               <div>
-                <p className="text-xs text-cyan-400 font-bold">対戦相手を待っています...</p>
-                <p className="text-sm text-white font-bold">ルーム: <span className="text-cyan-300 font-mono">{currentRoomId}</span></p>
+                <p className="text-xs text-red-400 font-bold">対戦相手を待っています...</p>
+                <p className="text-sm text-white font-bold">ルーム: <span className="text-red-300 font-mono">{currentRoomId}</span></p>
               </div>
             </div>
           </div>
@@ -94,7 +94,7 @@ const Matchmaking: React.FC<MatchmakingProps> = ({ rooms, onJoinRoom, onCancel, 
               onKeyDown={e => e.key === 'Enter' && handleCustomRoom()}
               placeholder="ルームIDを入力"
               maxLength={8}
-              className="flex-1 bg-gray-900/80 border border-cyan-800/50 rounded-xl px-3 py-2 text-white font-mono text-sm focus:border-cyan-500 outline-none tracking-widest"
+              className="flex-1 bg-gray-900/80 border border-red-800/50 rounded-xl px-3 py-2 text-white font-mono text-sm focus:border-red-500 outline-none tracking-widest"
             />
             <button
               onClick={handleCustomRoom}
@@ -109,7 +109,7 @@ const Matchmaking: React.FC<MatchmakingProps> = ({ rooms, onJoinRoom, onCancel, 
         {/* Room List */}
         <div>
           <div className="flex items-center gap-3 mb-4">
-            <h3 className="text-sm font-bold text-cyan-400 tracking-widest uppercase">待機中のルーム</h3>
+            <h3 className="text-sm font-bold text-red-400 tracking-widest uppercase">待機中のルーム</h3>
             <span className="text-xs text-green-400 font-mono">({waitingRooms.length})</span>
           </div>
 
@@ -123,10 +123,10 @@ const Matchmaking: React.FC<MatchmakingProps> = ({ rooms, onJoinRoom, onCancel, 
               {waitingRooms.map(room => (
                 <div
                   key={room.roomId}
-                  className="hud-panel rounded-xl p-4 flex items-center justify-between hover:border-cyan-700/50 transition-colors"
+                  className="hud-panel rounded-xl p-4 flex items-center justify-between hover:border-red-700/50 transition-colors"
                 >
                   <div>
-                    <p className="font-mono text-sm text-cyan-300 font-bold">{room.roomId}</p>
+                    <p className="font-mono text-sm text-red-300 font-bold">{room.roomId}</p>
                     <p className="text-xs text-gray-400 mt-0.5">ホスト: {room.hostName}</p>
                   </div>
                   <div className="flex items-center gap-3">

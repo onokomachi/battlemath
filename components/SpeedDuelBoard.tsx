@@ -174,7 +174,7 @@ const SpeedDuelBoard: React.FC<SpeedDuelBoardProps> = ({
         {problemType === 'graph_with_area' && (
           <div className="text-center w-full">
             <p className="text-base sm:text-xl mb-2 font-mono">{problemData?.question || "面積を求めよ"}</p>
-            <div className="w-full max-w-[200px] sm:max-w-[280px] mx-auto aspect-square bg-slate-900 rounded-xl p-2 border border-cyan-500/10">
+            <div className="w-full max-w-[200px] sm:max-w-[280px] mx-auto aspect-square bg-slate-900 rounded-xl p-2 border border-red-500/10">
               <GraphProblemView lines={problemData?.graphLines || []} polygon={problemData?.polygon} />
             </div>
           </div>

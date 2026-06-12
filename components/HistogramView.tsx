@@ -66,7 +66,7 @@ const HistogramView: React.FC<HistogramViewProps> = ({
       >
         {/* 背景 */}
         <rect x={plotLeft} y={plotTop} width={plotWidth} height={plotHeight} rx="2"
-          fill="rgba(15,23,42,0.6)" stroke="rgba(34,211,238,0.15)" strokeWidth="1" />
+          fill="rgba(15,23,42,0.6)" stroke="rgba(239,68,68,0.15)" strokeWidth="1" />
 
         {/* Y軸グリッドと目盛り */}
         {yTicks.map(v => {
@@ -74,9 +74,9 @@ const HistogramView: React.FC<HistogramViewProps> = ({
           return (
             <g key={`y-${v}`}>
               <line x1={plotLeft} y1={y} x2={plotRight} y2={y}
-                stroke="rgba(34,211,238,0.08)" strokeWidth="1" />
+                stroke="rgba(239,68,68,0.08)" strokeWidth="1" />
               <text x={plotLeft - 6} y={y + 3} textAnchor="end"
-                fill="rgba(34,211,238,0.7)" fontSize="10" fontFamily="monospace">
+                fill="rgba(239,68,68,0.7)" fontSize="10" fontFamily="monospace">
                 {v}
               </text>
             </g>
@@ -88,7 +88,7 @@ const HistogramView: React.FC<HistogramViewProps> = ({
           const x = toX(v);
           return (
             <text key={`x-${v}`} x={x} y={plotBottom + 14} textAnchor="middle"
-              fill="rgba(34,211,238,0.7)" fontSize="9" fontFamily="monospace">
+              fill="rgba(239,68,68,0.7)" fontSize="9" fontFamily="monospace">
               {v}
             </text>
           );
@@ -109,8 +109,8 @@ const HistogramView: React.FC<HistogramViewProps> = ({
                 y={y}
                 width={barWidth}
                 height={barHeight}
-                fill="rgba(34,211,238,0.3)"
-                stroke="#22d3ee"
+                fill="rgba(239,68,68,0.3)"
+                stroke="#f87171"
                 strokeWidth="1.5"
               />
               {/* 度数ラベル */}
@@ -127,13 +127,13 @@ const HistogramView: React.FC<HistogramViewProps> = ({
         {/* 軸ラベル */}
         {xLabel && (
           <text x={plotLeft + plotWidth / 2} y={svgHeight - 4} textAnchor="middle"
-            fill="rgba(34,211,238,0.5)" fontSize="10" fontFamily="sans-serif">
+            fill="rgba(239,68,68,0.5)" fontSize="10" fontFamily="sans-serif">
             {xLabel}
           </text>
         )}
         {yLabel && (
           <text x="12" y={plotTop + plotHeight / 2} textAnchor="middle"
-            fill="rgba(34,211,238,0.5)" fontSize="10" fontFamily="sans-serif"
+            fill="rgba(239,68,68,0.5)" fontSize="10" fontFamily="sans-serif"
             transform={`rotate(-90, 12, ${plotTop + plotHeight / 2})`}>
             {yLabel}
           </text>
@@ -141,9 +141,9 @@ const HistogramView: React.FC<HistogramViewProps> = ({
 
         {/* 軸線 */}
         <line x1={plotLeft} y1={plotBottom} x2={plotRight} y2={plotBottom}
-          stroke="rgba(34,211,238,0.4)" strokeWidth="1.5" />
+          stroke="rgba(239,68,68,0.4)" strokeWidth="1.5" />
         <line x1={plotLeft} y1={plotTop} x2={plotLeft} y2={plotBottom}
-          stroke="rgba(34,211,238,0.4)" strokeWidth="1.5" />
+          stroke="rgba(239,68,68,0.4)" strokeWidth="1.5" />
       </svg>
     </div>
   );
