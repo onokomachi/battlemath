@@ -9,6 +9,9 @@ import ProblemControls from './ProblemControls';
 import ProblemResultDisplay from './ProblemResultDisplay';
 import { BackIcon, PencilIcon, HomeIcon, TrophyIcon, ClockIcon } from './Icons';
 import { generateSubtopicKeypadLayout } from '../utils/keypadLayoutGenerator';
+import { checkAnswer as evaluateAnswer } from '../utils/answerChecker';
+import { recordAttempt } from '../services/weaknessAnalysisService';
+import { addIncorrectToSrs } from '../services/spacedRepetitionService';
 
 // Sub-views
 import AngleDiagramView from './AngleDiagramView';
@@ -34,6 +37,10 @@ interface ProblemScreenProps {
   subTopic: string;
   onBack: (stats: SessionStats) => void;
   onHome: () => void;
+  /** 復習モード: 出題する問題を直接指定（指定時は getShuffledProblemSet を使わない） */
+  problemsOverride?: Problem[];
+  /** 各問題の採点結果を親に通知（復習モードのSRS間隔更新に使用） */
+  onProblemResult?: (problem: Problem, correct: boolean) => void;
 }
 
 const HintModal: React.FC<{ hint: string | string[]; onClose: () => void }> = ({ hint, onClose }) => (
@@ -140,7 +147,7 @@ const PracticeSummary: React.FC<{ stats: SessionStats, subTopic: string, elapsed
     );
 };
 
-const ProblemScreen: React.FC<ProblemScreenProps> = ({ category, subTopic, onBack, onHome }) => {
+const ProblemScreen: React.FC<ProblemScreenProps> = ({ category, subTopic, onBack, onHome, problemsOverride, onProblemResult }) => {
   const [problems, setProblems] = useState<Problem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState('');
@@ -200,16 +207,17 @@ const ProblemScreen: React.FC<ProblemScreenProps> = ({ category, subTopic, onBac
   }, [category, subTopic]);
 
   useEffect(() => {
-    const loadedProblems = getShuffledProblemSet(category, subTopic);
+    const loadedProblems = problemsOverride ?? getShuffledProblemSet(category, subTopic);
     setProblems(loadedProblems);
     setIsLoading(false);
     setStartTime(Date.now());
-  }, [category, subTopic]);
+    // 注意: problemsOverride は親側で useMemo 等により参照を安定させること
+  }, [category, subTopic, problemsOverride]);
 
   const currentProblem = problems[currentIndex] || null;
   const isProof = currentProblem?.type === 'proof';
   const problemData = currentProblem?.data as any;
-  const problemHint = currentProblem?.data?.hint;
+  const problemHint = (currentProblem?.data as any)?.hint;
 
   const handleNextProblem = useCallback(() => {
     if (currentIndex < problems.length - 1) {
@@ -233,24 +241,32 @@ const ProblemScreen: React.FC<ProblemScreenProps> = ({ category, subTopic, onBac
     const duration = (endTime - startTime) / 1000;
     setTimeTaken(duration);
 
+    // 学習記録に使う単元名（復習モードでは問題側に元の単元が付与されている）
+    const recordCategory = (currentProblem as any).category || subTopic;
+
     if (isProof) {
       setResult('proof');
       setShowAnswer(true);
       setSessionStats(prev => ({ ...prev, correct: prev.correct + 1, totalScore: prev.totalScore + 10, problemCount: prev.problemCount + 1 }));
+      onProblemResult?.(currentProblem, true);
       return;
     }
 
-    // Normalize power notation: ^N → superscript for all digits
-    const superscriptMap: Record<string, string> = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹', '+': '⁺', '-': '⁻', 'n': 'ⁿ', 'm': 'ᵐ' };
-    const normalizePowers = (s: string) => s.replace(/\^([0-9+\-nm]+)/g, (_, digits: string) => digits.split('').map(c => superscriptMap[c] || c).join(''));
-    const normalizeAnswer = (s: string) => normalizePowers(s.trim().replace(/[°度]/g, '').replace(/pi/gi, 'π').replace(/\s+/g, ''));
-    const cleanUser = normalizeAnswer(userAnswer);
-    const cleanTarget = normalizeAnswer(currentProblem.answer);
+    // バトルモードと同一の統一採点ロジック（全角入力・複数入力欄・順不同選択に対応）
+    const isCorrect = evaluateAnswer(userAnswer, currentProblem.answer, { multiple: !!problemData?.multiple });
 
-    // For multiple-choice questions, compare as sorted sets
-    const isCorrect = problemData?.multiple
-      ? cleanUser.split(',').sort().join(',') === cleanTarget.split(',').sort().join(',')
-      : cleanUser === cleanTarget;
+    // 学習記録: 弱点分析・間隔反復(SRS)をバトルモードと同様に蓄積
+    // （従来、練習モードの解答はどちらにも記録されていなかった）
+    recordAttempt(recordCategory, isCorrect);
+    if (!isCorrect) {
+      addIncorrectToSrs(
+        recordCategory,
+        String((currentProblem.data as any)?.question || '').slice(0, 50),
+        currentProblem.answer,
+        currentProblem.type
+      );
+    }
+    onProblemResult?.(currentProblem, isCorrect);
 
     if (isCorrect) {
       setResult('correct');
@@ -273,7 +289,7 @@ const ProblemScreen: React.FC<ProblemScreenProps> = ({ category, subTopic, onBac
       }));
     }
     setShowAnswer(true);
-  }, [currentProblem, result, startTime, userAnswer, isProof]);
+  }, [currentProblem, result, startTime, userAnswer, isProof, subTopic, onProblemResult]);
 
   const handleKeypadClick = useCallback((key: string) => {
     if (showAnswer) return;
@@ -552,6 +568,7 @@ const ProblemScreen: React.FC<ProblemScreenProps> = ({ category, subTopic, onBac
                   userAnswer={userAnswer}
                   timeTaken={timeTaken}
                   score={score}
+                  hint={problemHint}
                   getResultRingColor={() => showAnswer ? (result === 'correct' ? 'border-cyan-400' : 'border-red-500') : 'border-transparent'}
                 />
               </div>

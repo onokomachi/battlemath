@@ -254,7 +254,8 @@ const MainMenu: React.FC<MainMenuProps> = ({
         {[
           { mode: 'deck_building' as GameState, label: 'バトル', desc: 'デッキを組んでCPUやプレイヤーと対戦', icon: '⚔', badge: 0 },
           { mode: 'speed_duel_setup' as GameState, label: 'スピード', desc: 'デッキ不要！早押し勝負', icon: '⚡', badge: 0 },
-          { mode: 'practice_mode' as GameState, label: '練習', desc: '分野別に問題を解いて実力アップ', icon: '📖', badge: srsReviewCount },
+          { mode: 'practice_mode' as GameState, label: '練習', desc: '分野別に問題を解いて実力アップ', icon: '📖', badge: 0 },
+          { mode: 'review_mode' as GameState, label: '復習', desc: '間違えた問題を最適なタイミングで', icon: '🔁', badge: srsReviewCount },
           { mode: 'card_shop' as GameState, label: 'ショップ', desc: 'MPでカードパックを購入', icon: '🎴', badge: 0 },
         ].map((item, i) => (
           <button

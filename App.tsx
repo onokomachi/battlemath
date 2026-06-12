@@ -16,16 +16,16 @@ import {
   type User
 } from 'firebase/auth';
 import {
-  doc, getDoc, getDocs, setDoc, updateDoc, increment, arrayUnion,
-  collection, onSnapshot, query, addDoc, serverTimestamp,
-  runTransaction, where, orderBy, limit, Timestamp, deleteDoc
+  doc, getDoc, getDocs, setDoc, updateDoc, increment,
+  collection, onSnapshot, query, serverTimestamp,
+  runTransaction, where,
 } from 'firebase/firestore';
 import { auth, db, googleProvider } from './firebase';
-import type { ProblemCard, TurnPhase, GameState, TurnInitiative, Room, BattleMode, BattleFormat, BadgeDef, StudentProfile, ActiveBooster } from './types';
+import type { ProblemCard, TurnPhase, GameState, TurnInitiative, Room, BattleMode, BattleFormat, StudentProfile } from './types';
 import {
   CARD_DEFINITIONS, HAND_SIZE, DECK_SIZE,
-  INITIAL_HP, calcDamage, ADMIN_EMAILS, GAMEMASTER_PASSWORD,
-  BADGE_DEFS, DAILY_QUEST_DEFS, WEEKLY_QUEST_DEFS, getTodayStr, getWeekStart,
+  INITIAL_HP, calcDamage, ADMIN_EMAILS,
+  DAILY_QUEST_DEFS, getTodayStr,
   SHOP_ITEMS, TITLE_DEFS, THEME_CONFIGS, DEFAULT_SCHOOL_YEAR, getCurrentSchoolYear,
 } from './constants';
 import GameBoard from './components/GameBoard';
@@ -43,6 +43,11 @@ import QuestPanel from './components/QuestPanel';
 import BadgeNotification from './components/BadgeNotification';
 import LoginBonusModal, { getLoginReward } from './components/LoginBonusModal';
 import ClassBattleBoard from './components/ClassBattleBoard';
+import { checkAnswer } from './utils/answerChecker';
+import {
+  SPEED_DUEL_TIME_LIMIT_SEC, SPEED_DUEL_COUNTDOWN_MS, SPEED_CPU,
+  speedCpuAccuracy, SPEED_DUEL_REWARDS,
+} from './constants/gameBalance';
 import { addIncorrectToSrs, getDueCount } from './services/spacedRepetitionService';
 import { recordAttempt, getCategoryWeights } from './services/weaknessAnalysisService';
 import WeaknessPanel from './components/WeaknessPanel';
@@ -51,41 +56,19 @@ import TutorialBattle from './components/TutorialBattle';
 import SpeedDuelSetup from './components/SpeedDuelSetup';
 import SpeedDuelBoard from './components/SpeedDuelBoard';
 import NewYearPrompt from './components/NewYearPrompt';
-import type { ShopItemDef, BattleType, Problem } from './types';
-import { getCategoryStats } from './services/weaknessAnalysisService';
+import ReviewMode from './components/ReviewMode';
+import type { BattleType, Problem, SpeedProblem } from './types';
+import { shuffleDeck } from './utils/shuffle';
+import { useProgressionStore, expForNextLevel, sessionCounters } from './store/progressionStore';
+import {
+  usePvpConnection, type SavedPvpSession,
+  saveActivePvpSession, loadActivePvpSession, clearActivePvpSession, PVP_RESUME_MAX_AGE_MS,
+} from './hooks/usePvpConnection';
 
-// ============================
-// Helpers
-// ============================
-// エビデンスA: Fisher-Yates shuffle — 唯一の均一分布シャッフル
-// sort(() => Math.random()-0.5) は偏りがある (Raymond Chen 2007)
-const shuffleDeck = (deck: ProblemCard[]): ProblemCard[] => {
-  const arr = [...deck];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-};
+// 採点は utils/answerChecker.ts に一本化（カードバトル・スピード対戦・練習モード共通）
 
-const SUPERSCRIPT_MAP: Record<string, string> = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹', '+': '⁺', '-': '⁻', 'n': 'ⁿ', 'm': 'ᵐ' };
-
-const normalizeAnswer = (str: string): string => {
-  if (!str) return '';
-  return str
-    .replace(/[！-～]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
-    .replace(/\s+/g, '')
-    .replace(/[°度円枚個m分]/g, '')
-    .replace(/＝/g, '=')
-    .replace(/／/g, '/')
-    .replace(/（/g, '(')
-    .replace(/）/g, ')')
-    .replace(/\^([0-9+\-nm]+)/g, (_, digits: string) => digits.split('').map(c => SUPERSCRIPT_MAP[c] || c).join(''))
-    .replace(/pi/gi, 'π')
-    .replace(/0\.5x/g, '1/2x')
-    .replace(/([+-])0\.5x/g, '$11/2x')
-    .toLowerCase();
-};
+// シャッフルは utils/shuffle.ts (Fisher-Yates)、進捗・ゲーミフィケーション状態は
+// store/progressionStore.ts (Zustand) に一本化
 
 // ============================
 // App Component
@@ -126,39 +109,22 @@ const App: React.FC = () => {
   const [turnPhase, setTurnPhase] = useState<TurnPhase>('selecting_card');
   const [initiative, setInitiative] = useState<TurnInitiative>('player');
 
-  // --- Player Progression (synced to Firestore when logged in) ---
-  const [mathPoints, setMathPoints] = useState<number>(() => {
-    try { return JSON.parse(localStorage.getItem('battleMathPoints') || '1000'); }
-    catch { return 1000; }
-  });
-  const [ownedCardIds, setOwnedCardIds] = useState<Set<number>>(() => {
-    try {
-      const s = localStorage.getItem('battleMathOwnedCardIds');
-      if (s) return new Set(JSON.parse(s));
-    } catch {}
-    return new Set(CARD_DEFINITIONS.slice(0, 20).map(c => c.id));
-  });
-  const [playerLevel, setPlayerLevel] = useState<number>(() => {
-    try { return JSON.parse(localStorage.getItem('battleMathPlayerLevel') || '1'); }
-    catch { return 1; }
-  });
-  const [playerExp, setPlayerExp] = useState<number>(() => {
-    try { return JSON.parse(localStorage.getItem('battleMathPlayerExp') || '0'); }
-    catch { return 0; }
-  });
-  const [userLevelStats, setUserLevelStats] = useState<Record<number, { avgTime: number; count: number }>>(() => {
-    try {
-      const s = localStorage.getItem('battleMathUserLevelStats');
-      return s ? JSON.parse(s) : {
-        1: { avgTime: 5000, count: 0 }, 2: { avgTime: 10000, count: 0 },
-        3: { avgTime: 20000, count: 0 }, 4: { avgTime: 40000, count: 0 },
-        5: { avgTime: 60000, count: 0 }
-      };
-    } catch { return { 1: { avgTime: 5000, count: 0 }, 2: { avgTime: 10000, count: 0 }, 3: { avgTime: 20000, count: 0 }, 4: { avgTime: 40000, count: 0 }, 5: { avgTime: 60000, count: 0 } }; }
-  });
-  const [levelUpInfo, setLevelUpInfo] = useState<{
-    oldLevel: number; newLevel: number; mpReward: number; newCard: ProblemCard | null;
-  } | null>(null);
+  // --- Player Progression & ゲーミフィケーション (Zustand store) ---
+  // localStorage 永続化・Firestore 書き込みはストア内で行う
+  const {
+    mathPoints, ownedCardIds, playerLevel, playerExp, userLevelStats,
+    levelUpInfo, setLevelUpInfo, pendingBadge, setPendingBadge,
+    loginStreak, totalWins, totalCorrectAnswers, chainCount, setChainCount,
+    earnedBadgeIds, ownedShopItems, equippedTitle, setEquippedTitle,
+    equippedTheme, setEquippedTheme, earnedTitleIds, hintTokens,
+    tutorialDone, setTutorialDone,
+    dailyQuestProgress, dailyQuestDone, weeklyQuestProgress, weeklyQuestDone,
+    setUid, earnBadge, handleQuestProgress, checkTitleConditions,
+    onCorrectAnswerEvent: recordAnswerOutcome, flushSessionData,
+    addBoostedMp, addExp, claimLoginBonus, handleShopPurchase,
+    checkCategoryMasterBadges, buyCardPack, recordSolveTime,
+    addMathPoints, incrementTotalWins,
+  } = useProgressionStore();
 
   // --- Battle State ---
   const [playerDeck, setPlayerDeck] = useState<ProblemCard[]>([]);
@@ -187,7 +153,7 @@ const App: React.FC = () => {
   // --- Speed Duel State ---
   const [battleType, setBattleType] = useState<BattleType>('card_battle');
   const [speedCategories, setSpeedCategories] = useState<string[]>([]);
-  const [speedProblems, setSpeedProblems] = useState<Problem[]>([]);
+  const [speedProblems, setSpeedProblems] = useState<SpeedProblem[]>([]);
   const [speedRound, setSpeedRound] = useState(1);
   const [speedTotalRounds, setSpeedTotalRounds] = useState(5);
   const [speedPlayerScore, setSpeedPlayerScore] = useState(0);
@@ -205,8 +171,6 @@ const App: React.FC = () => {
   // --- PvP State ---
   const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
   const [isHost, setIsHost] = useState(false);
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [firestoreError, setFirestoreError] = useState<string | null>(null);
   const [opponentDisconnected, setOpponentDisconnected] = useState(false);
   const unsubscribeRoomRef = useRef<(() => void) | null>(null);
   const isHostRef = useRef(isHost);
@@ -218,22 +182,18 @@ const App: React.FC = () => {
   const speedPhaseRef = useRef(speedPhase);
   const battleTypeRef = useRef<BattleType>(battleType);
 
+  // PvP接続レイヤー（ルーム一覧監視・leaveRoom・ハートビート）は hooks/usePvpConnection.ts に分離
+  const { rooms, firestoreError, leaveRoom } = usePvpConnection({
+    gameState, currentRoomId, user, isHostRef, currentRoomIdRef,
+  });
+
   // --- UI Overlays ---
   const [showRanking, setShowRanking] = useState(false);
 
-  // --- ゲーミフィケーション State ---
-  // エビデンスA: ログイン連続日数 × ストリーク喪失回避（Kahneman 1979）
-  const [loginStreak, setLoginStreak] = useState(0);
-  const [totalWins, setTotalWins] = useState(0);
-  // エビデンスA: チェインカウンター × 可変報酬スケジュール（Skinner 1938）
-  const [chainCount, setChainCount] = useState(0);
+  // --- バトル中の一時 UI State (ストア外) ---
   const [wrongAnswerText, setWrongAnswerText] = useState<string | null>(null);
   const [playerWrongAnswer, setPlayerWrongAnswer] = useState<string | null>(null);
   const [wrongCategory, setWrongCategory] = useState<string | null>(null);
-  // エビデンスB: バッジ × 自己決定理論（Deci & Ryan 1985）
-  const [earnedBadgeIds, setEarnedBadgeIds] = useState<Set<string>>(new Set());
-  const [pendingBadge, setPendingBadge] = useState<BadgeDef | null>(null);
-  const [totalCorrectAnswers, setTotalCorrectAnswers] = useState(0);
   // パネル表示
   const [showQuestPanel, setShowQuestPanel] = useState(false);
   const [showLoginBonus, setShowLoginBonus] = useState(false);
@@ -241,55 +201,6 @@ const App: React.FC = () => {
   const [showClassBattle, setShowClassBattle] = useState(false);
   const [showWeaknessPanel, setShowWeaknessPanel] = useState(false);
   const [showItemShop, setShowItemShop] = useState(false);
-  const [ownedShopItems, setOwnedShopItems] = useState<Set<string>>(() => {
-    try {
-      const s = localStorage.getItem('bm_owned_shop_items');
-      return s ? new Set(JSON.parse(s)) : new Set();
-    } catch { return new Set(); }
-  });
-  const [equippedTitle, setEquippedTitle] = useState<string | null>(() => {
-    try { return localStorage.getItem('bm_equipped_title') || null; }
-    catch { return null; }
-  });
-  // 称号システム
-  const [earnedTitleIds, setEarnedTitleIds] = useState<Set<string>>(() => {
-    try {
-      const s = localStorage.getItem('bm_earned_titles');
-      return s ? new Set(JSON.parse(s)) : new Set(['title_newcomer']);
-    } catch { return new Set(['title_newcomer']); }
-  });
-  // バトルテーマ
-  const [equippedTheme, setEquippedTheme] = useState<string | null>(() => {
-    try { return localStorage.getItem('bm_equipped_theme') || null; }
-    catch { return null; }
-  });
-  // 消耗品
-  const [activeBooster, setActiveBooster] = useState<ActiveBooster | null>(() => {
-    try {
-      const s = localStorage.getItem('bm_active_booster');
-      if (!s) return null;
-      const b = JSON.parse(s) as ActiveBooster;
-      return Date.now() < b.expiresAt ? b : null;
-    } catch { return null; }
-  });
-  const [hintTokens, setHintTokens] = useState<number>(() => {
-    try { return parseInt(localStorage.getItem('bm_hint_tokens') || '0', 10); }
-    catch { return 0; }
-  });
-  const [expBoosterActive, setExpBoosterActive] = useState<boolean>(() => {
-    return localStorage.getItem('bm_exp_booster') === '1';
-  });
-  const [tutorialDone, setTutorialDone] = useState(() => {
-    return localStorage.getItem('bm_tutorial_done') === '1';
-  });
-  // クエスト進捗 (localStorage管理でFirestoreクォータ節約)
-  const [dailyQuestProgress, setDailyQuestProgress] = useState<Record<string, number>>({});
-  const [dailyQuestDone, setDailyQuestDone] = useState<Set<string>>(new Set());
-  const [weeklyQuestProgress, setWeeklyQuestProgress] = useState<Record<string, number>>({});
-  const [weeklyQuestDone, setWeeklyQuestDone] = useState<Set<string>>(new Set());
-  // セッション蓄積 refs (書き込み最小化)
-  const sessionCorrectRef = useRef(0);
-  const sessionAnsweredRef = useRef(0);
 
   // Sync refs
   useEffect(() => { isHostRef.current = isHost; }, [isHost]);
@@ -299,31 +210,8 @@ const App: React.FC = () => {
   useEffect(() => { speedPhaseRef.current = speedPhase; }, [speedPhase]);
   useEffect(() => { battleTypeRef.current = battleType; }, [battleType]);
 
-  // ============================
-  // localStorage sync
-  // ============================
-  useEffect(() => {
-    localStorage.setItem('battleMathPoints', JSON.stringify(mathPoints));
-    localStorage.setItem('battleMathOwnedCardIds', JSON.stringify(Array.from(ownedCardIds)));
-    localStorage.setItem('battleMathPlayerLevel', JSON.stringify(playerLevel));
-    localStorage.setItem('battleMathPlayerExp', JSON.stringify(playerExp));
-    localStorage.setItem('battleMathUserLevelStats', JSON.stringify(userLevelStats));
-    if (studentProfile) localStorage.setItem('battleMathStudentProfile', JSON.stringify(studentProfile));
-    localStorage.setItem('bm_owned_shop_items', JSON.stringify(Array.from(ownedShopItems)));
-    if (equippedTitle) localStorage.setItem('bm_equipped_title', equippedTitle);
-    else localStorage.removeItem('bm_equipped_title');
-    if (equippedTheme) localStorage.setItem('bm_equipped_theme', equippedTheme);
-    else localStorage.removeItem('bm_equipped_theme');
-    localStorage.setItem('bm_earned_titles', JSON.stringify(Array.from(earnedTitleIds)));
-    localStorage.setItem('bm_hint_tokens', String(hintTokens));
-    if (expBoosterActive) localStorage.setItem('bm_exp_booster', '1');
-    else localStorage.removeItem('bm_exp_booster');
-    if (activeBooster && Date.now() < activeBooster.expiresAt) {
-      localStorage.setItem('bm_active_booster', JSON.stringify(activeBooster));
-    } else {
-      localStorage.removeItem('bm_active_booster');
-    }
-  }, [mathPoints, ownedCardIds, playerLevel, playerExp, userLevelStats, studentProfile, ownedShopItems, equippedTitle, equippedTheme, earnedTitleIds, hintTokens, expBoosterActive, activeBooster]);
+  // localStorage 永続化は store/progressionStore.ts の subscribe で実施
+  // (studentProfile は各セット箇所で直接書き込み)
 
   const ownedCards = useMemo(
     () => CARD_DEFINITIONS.filter(c => ownedCardIds.has(c.id)),
@@ -349,23 +237,25 @@ const App: React.FC = () => {
 
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
+      setUid(u ? u.uid : null);
       setAuthLoading(false);
       if (u && db) {
-        // Sync user data from Firestore
+        // Sync user data from Firestore → ストアにハイドレート
+        const store = useProgressionStore.getState;
         const ref = doc(db, 'users', u.uid);
         try {
           const snap = await getDoc(ref);
           if (snap.exists()) {
             const d = snap.data();
-            if (d.mathPoints !== undefined) setMathPoints(d.mathPoints);
-            if (d.playerLevel !== undefined) setPlayerLevel(d.playerLevel);
-            if (d.playerExp !== undefined) setPlayerExp(d.playerExp);
-            if (d.ownedCardIds) setOwnedCardIds(new Set(d.ownedCardIds));
+            if (d.mathPoints !== undefined) store().setMathPoints(d.mathPoints);
+            if (d.playerLevel !== undefined) store().setPlayerLevel(d.playerLevel);
+            if (d.playerExp !== undefined) store().setPlayerExp(d.playerExp);
+            if (d.ownedCardIds) store().setOwnedCardIds(new Set(d.ownedCardIds));
             // ゲーミフィケーションデータ読み込み
-            if (d.earnedBadgeIds) setEarnedBadgeIds(new Set(d.earnedBadgeIds));
-            if (d.totalCorrectAnswers !== undefined) setTotalCorrectAnswers(d.totalCorrectAnswers);
-            if (d.totalWins !== undefined) setTotalWins(d.totalWins);
-            if (d.earnedTitleIds) setEarnedTitleIds(prev => new Set([...prev, ...d.earnedTitleIds]));
+            if (d.earnedBadgeIds) store().setEarnedBadgeIds(new Set(d.earnedBadgeIds));
+            if (d.totalCorrectAnswers !== undefined) store().setTotalCorrectAnswers(d.totalCorrectAnswers);
+            if (d.totalWins !== undefined) store().setTotalWins(d.totalWins);
+            if (d.earnedTitleIds) store().mergeEarnedTitleIds(d.earnedTitleIds);
             // 学校・学年・組・番号情報をFirestoreから復元
             // school フィールドがない既存ユーザーは第三中学校をデフォルト設定
             if (d.studentProfile) {
@@ -400,11 +290,11 @@ const App: React.FC = () => {
                 // ストリークシールド発動
                 // streak維持、シールドを消費
                 await updateDoc(ref, { loginStreak: newStreak, lastLoginDate: today, hasStreakShield: false }).catch(() => {});
-                setOwnedShopItems(prev => { const n = new Set(prev); n.delete('streak_shield'); return n; });
-                setLoginStreak(newStreak);
+                store().consumeStreakShield();
+                store().setLoginStreak(newStreak);
                 setLoginBonusClaimed(false);
                 setTimeout(() => setShowLoginBonus(true), 800);
-                setTimeout(() => checkMonthlyChampion(), 2000);
+                setTimeout(() => store().checkMonthlyChampion(), 2000);
                 // シールド使用通知はloginBonusModal側で表示（shieldUsedフラグ不要）
                 return;
               } else {
@@ -418,9 +308,9 @@ const App: React.FC = () => {
               // Already logged in today - check if bonus was claimed
               setLoginBonusClaimed(!!d.loginBonusClaimedDate && d.loginBonusClaimedDate === today);
             }
-            setLoginStreak(newStreak);
+            store().setLoginStreak(newStreak);
             // 月次チャンピオン称号チェック（ログイン時1回のみ）
-            setTimeout(() => checkMonthlyChampion(), 2000);
+            setTimeout(() => store().checkMonthlyChampion(), 2000);
           } else {
             // First login: initialize user doc
             await setDoc(ref, {
@@ -428,12 +318,12 @@ const App: React.FC = () => {
               displayName: u.displayName,
               email: u.email,
               photoURL: u.photoURL,
-              mathPoints,
-              playerLevel,
-              playerExp,
+              mathPoints: store().mathPoints,
+              playerLevel: store().playerLevel,
+              playerExp: store().playerExp,
               totalWins: 0,
               totalMatches: 0,
-              ownedCardIds: Array.from(ownedCardIds),
+              ownedCardIds: Array.from(store().ownedCardIds),
               earnedBadgeIds: [],
               totalCorrectAnswers: 0,
               totalAnswered: 0,
@@ -443,19 +333,12 @@ const App: React.FC = () => {
               studentProfile: studentProfile || null,
               createdAt: serverTimestamp(),
             });
-            setLoginStreak(1);
+            store().setLoginStreak(1);
             setLoginBonusClaimed(false);
             setTimeout(() => setShowLoginBonus(true), 800);
           }
           // クエスト進捗をlocalStorageから復元
-          const dqKey = `bm_dq_${getTodayStr()}`;
-          const wqKey = `bm_wq_${getWeekStart()}`;
-          try {
-            setDailyQuestProgress(JSON.parse(localStorage.getItem(dqKey) || '{}'));
-            setWeeklyQuestProgress(JSON.parse(localStorage.getItem(wqKey) || '{}'));
-            setDailyQuestDone(new Set(JSON.parse(localStorage.getItem(`${dqKey}_done`) || '[]')));
-            setWeeklyQuestDone(new Set(JSON.parse(localStorage.getItem(`${wqKey}_done`) || '[]')));
-          } catch {}
+          store().hydrateQuests();
         } catch (e) { console.error('User sync error:', e); }
       }
     });
@@ -470,183 +353,18 @@ const App: React.FC = () => {
   }, [user]);
 
   // ============================
-  // バッジ獲得
-  // エビデンスB: 自己決定理論 × 有能感フィードバック（Deci & Ryan 1985）
-  // ============================
-  const earnBadge = useCallback((badgeId: string) => {
-    setEarnedBadgeIds(prev => {
-      if (prev.has(badgeId)) return prev;
-      const badge = BADGE_DEFS.find(b => b.id === badgeId);
-      if (!badge) return prev;
-      setPendingBadge(badge);
-      setMathPoints(p => p + 100);
-      // Firestore にバッジ追加 (arrayUnion で冪等性確保)
-      if (user && db) {
-        updateDoc(doc(db, 'users', user.uid), {
-          earnedBadgeIds: arrayUnion(badgeId),
-          mathPoints: increment(100),
-        }).catch(() => {});
-      }
-      return new Set(prev).add(badgeId);
-    });
-  }, [user]);
-
-  // ============================
-  // クエスト進捗更新
-  // エビデンスA: 目標設定理論（Locke & Latham 1990）
-  // ============================
-  const handleQuestProgress = useCallback((type: 'correct' | 'pvp_match') => {
-    const dqKey = `bm_dq_${getTodayStr()}`;
-    const wqKey = `bm_wq_${getWeekStart()}`;
-
-    setDailyQuestProgress(prev => {
-      const next = { ...prev };
-      if (type === 'correct') {
-        next['dq_5'] = (next['dq_5'] || 0) + 1;
-        next['dq_15'] = (next['dq_15'] || 0) + 1;
-        next['dq_30'] = (next['dq_30'] || 0) + 1;
-      } else if (type === 'pvp_match') {
-        next['dq_pvp'] = (next['dq_pvp'] || 0) + 1;
-      }
-      localStorage.setItem(dqKey, JSON.stringify(next));
-      // クエスト達成チェック
-      setDailyQuestDone(prevDone => {
-        const newDone = new Set(prevDone);
-        DAILY_QUEST_DEFS.forEach(q => {
-          if (!newDone.has(q.id) && (next[q.id] || 0) >= q.target) {
-            newDone.add(q.id);
-            setMathPoints(p => p + q.reward.mp);
-            if (user && db) {
-              updateDoc(doc(db, 'users', user.uid), { mathPoints: increment(q.reward.mp) }).catch(() => {});
-            }
-          }
-        });
-        localStorage.setItem(`${dqKey}_done`, JSON.stringify([...newDone]));
-        return newDone;
-      });
-      return next;
-    });
-
-    setWeeklyQuestProgress(prev => {
-      const next = { ...prev };
-      if (type === 'correct') {
-        next['wq_50'] = (next['wq_50'] || 0) + 1;
-        next['wq_100'] = (next['wq_100'] || 0) + 1;
-      } else if (type === 'pvp_match') {
-        next['wq_pvp3'] = (next['wq_pvp3'] || 0) + 1;
-      }
-      localStorage.setItem(wqKey, JSON.stringify(next));
-      setWeeklyQuestDone(prevDone => {
-        const newDone = new Set(prevDone);
-        WEEKLY_QUEST_DEFS.forEach(q => {
-          if (!newDone.has(q.id) && (next[q.id] || 0) >= q.target) {
-            newDone.add(q.id);
-            setMathPoints(p => p + q.reward.mp);
-            if (user && db) {
-              updateDoc(doc(db, 'users', user.uid), { mathPoints: increment(q.reward.mp) }).catch(() => {});
-            }
-          }
-        });
-        localStorage.setItem(`${wqKey}_done`, JSON.stringify([...newDone]));
-        return newDone;
-      });
-      return next;
-    });
-  }, [user]);
-
-  // ============================
-  // 称号システム
-  // ============================
-  const earnTitle = useCallback((titleId: string) => {
-    setEarnedTitleIds(prev => {
-      if (prev.has(titleId)) return prev;
-      if (!TITLE_DEFS.find(t => t.id === titleId)) return prev;
-      if (user && db) {
-        updateDoc(doc(db, 'users', user.uid), {
-          earnedTitleIds: arrayUnion(titleId),
-        }).catch(() => {});
-      }
-      return new Set(prev).add(titleId);
-    });
-  }, [user]);
-
-  const checkTitleConditions = useCallback((snapshot: {
-    totalCorrectAnswers: number;
-    totalWins: number;
-    loginStreak: number;
-    playerLevel: number;
-    earnedBadgeIds: Set<string>;
-  }) => {
-    TITLE_DEFS.filter(t => !t.isMonthly).forEach(title => {
-      const { type, value = 0, badgeId } = title.condition;
-      let satisfied = false;
-      switch (type) {
-        case 'any': satisfied = true; break;
-        case 'total_correct': satisfied = snapshot.totalCorrectAnswers >= value; break;
-        case 'total_wins': satisfied = snapshot.totalWins >= value; break;
-        case 'login_streak': satisfied = snapshot.loginStreak >= value; break;
-        case 'level': satisfied = snapshot.playerLevel >= value; break;
-        case 'badge_owned': satisfied = !!badgeId && snapshot.earnedBadgeIds.has(badgeId); break;
-      }
-      if (satisfied) earnTitle(title.id);
-    });
-  }, [earnTitle]);
-
-  const checkMonthlyChampion = useCallback(async () => {
-    if (!db || !user) return;
-    try {
-      const monthKey = new Date().toISOString().slice(0, 7);
-      const snap = await getDoc(doc(db, 'config', `monthly_champion_${monthKey}`));
-      const isChampion = snap.exists() && snap.data()?.winnerUid === user.uid;
-      if (isChampion) {
-        earnTitle('title_monthly_champion');
-      } else {
-        setEarnedTitleIds(prev => {
-          const next = new Set(prev);
-          next.delete('title_monthly_champion');
-          return next;
-        });
-        if (equippedTitle === 'title_monthly_champion') setEquippedTitle(null);
-      }
-    } catch {}
-  }, [user, equippedTitle, earnTitle]);
-
-  // ============================
-  // 正解イベント統合処理
-  // チェイン・バッジ・クエスト・クラス蓄積
+  // 正解イベント統合処理 (バッジ・クエスト等はストア側で実施)
+  // ここでは正解ヒント表示のみ App 側で扱う
   // ============================
   const onCorrectAnswerEvent = useCallback((isCorrect: boolean, correctAnswer: string) => {
-    // 全回答数をトラック（正答率計算用）
-    sessionAnsweredRef.current += 1;
+    recordAnswerOutcome(isCorrect);
     if (isCorrect) {
-      // チェインカウンター更新
-      setChainCount(prev => {
-        const next = prev + 1;
-        if (next === 5) earnBadge('chain_5');
-        if (next === 10) earnBadge('chain_10');
-        if (next === 20) earnBadge('chain_20');
-        return next;
-      });
       setWrongAnswerText(null);
-      // 累積カウンター
-      sessionCorrectRef.current += 1;
-      setTotalCorrectAnswers(prev => {
-        const next = prev + 1;
-        if (next === 1) earnBadge('first_correct');
-        if (next === 50) earnBadge('correct_50');
-        if (next === 100) earnBadge('correct_100');
-        if (next === 500) earnBadge('correct_500');
-        if (next === 1000) earnBadge('correct_1000');
-        return next;
-      });
-      // クエスト進捗
-      handleQuestProgress('correct');
     } else {
-      // 不正解: チェインリセット、正解ヒント表示
-      setChainCount(0);
+      // 不正解: 正解ヒント表示
       setWrongAnswerText(correctAnswer);
     }
-  }, [earnBadge, handleQuestProgress]);
+  }, [recordAnswerOutcome]);
 
   // ログインストリークバッジ
   useEffect(() => {
@@ -655,7 +373,7 @@ const App: React.FC = () => {
     if (loginStreak >= 14) earnBadge('streak_14');
     if (loginStreak >= 30) earnBadge('streak_30');
     // ログインストリーク称号チェック
-    checkTitleConditions({ totalCorrectAnswers, totalWins, loginStreak, playerLevel, earnedBadgeIds });
+    checkTitleConditions();
   }, [loginStreak, earnBadge, checkTitleConditions, totalCorrectAnswers, totalWins, playerLevel, earnedBadgeIds]);
 
   // 正解ヒント自動クリア（3秒後）
@@ -665,24 +383,7 @@ const App: React.FC = () => {
     return () => clearTimeout(t);
   }, [wrongAnswerText]);
 
-  // ============================
-  // セッションデータ書き込み (Firestore quota最小化)
-  // ============================
-  const flushSessionData = useCallback(async () => {
-    if (!user || !db) return;
-    const updates: Record<string, any> = {};
-    if (sessionCorrectRef.current > 0) {
-      updates.totalCorrectAnswers = increment(sessionCorrectRef.current);
-      sessionCorrectRef.current = 0;
-    }
-    if (sessionAnsweredRef.current > 0) {
-      updates.totalAnswered = increment(sessionAnsweredRef.current);
-      sessionAnsweredRef.current = 0;
-    }
-    if (Object.keys(updates).length > 0) {
-      await updateDoc(doc(db, 'users', user.uid), updates).catch(() => {});
-    }
-  }, [user]);
+  // セッションデータ書き込み (flushSessionData) はストア側に移動
 
   // ============================
   // Auth Handlers
@@ -762,221 +463,23 @@ const App: React.FC = () => {
     setGameState(tutorialDone ? 'main_menu' : 'tutorial');
   };
 
+  // ログインボーナス: MP加算・Firestore書き込みはストア、受取済みフラグはApp側UI状態
   const handleClaimLoginBonus = useCallback(() => {
-    const reward = getLoginReward(loginStreak);
-    setMathPoints(p => p + reward);
+    claimLoginBonus();
     setLoginBonusClaimed(true);
-    if (user && db) {
-      updateDoc(doc(db, 'users', user.uid), {
-        mathPoints: increment(reward),
-        loginBonusClaimedDate: getTodayStr(),
-      }).catch(() => {});
-    }
-  }, [loginStreak, user]);
+  }, [claimLoginBonus]);
 
-  const handleShopPurchase = useCallback((item: ShopItemDef) => {
-    if (mathPoints < item.cost) return;
-    // 消耗品は重複購入可
-    if (item.type !== 'hint_token' && item.type !== 'mp_booster' && item.type !== 'exp_booster') {
-      if (ownedShopItems.has(item.id)) return;
-    }
-    setMathPoints(p => p - item.cost);
-    if (user && db) {
-      updateDoc(doc(db, 'users', user.uid), { mathPoints: increment(-item.cost) }).catch(() => {});
-    }
-    // 消耗品処理
-    if (item.type === 'hint_token') {
-      setHintTokens(prev => prev + 1);
-      return;
-    }
-    if (item.type === 'mp_booster') {
-      const booster: ActiveBooster = { type: 'mp_booster', expiresAt: Date.now() + (item.durationMs || 3600000), multiplier: 2 };
-      setActiveBooster(booster);
-      return;
-    }
-    if (item.type === 'exp_booster') {
-      setExpBoosterActive(true);
-      return;
-    }
-    // 通常アイテム（シールド・テーマ）
-    setOwnedShopItems(prev => new Set([...prev, item.id]));
-    if (item.type === 'streak_shield' && user && db) {
-      updateDoc(doc(db, 'users', user.uid), { hasStreakShield: true }).catch(() => {});
-    }
-  }, [ownedShopItems, mathPoints, user]);
-
-  // 分野マスターバッジチェック
-  const checkCategoryMasterBadges = useCallback(() => {
-    const stats = getCategoryStats();
-    const categoryBadgeMap: Record<string, string> = {
-      '式の計算': 'master_polynomial',
-      '連立方程式': 'master_equation',
-      '図形の性質': 'master_geometry',
-      '一次関数': 'master_function',
-      '確率': 'master_probability',
-      'データの活用': 'master_data',
-    };
-    let masteredCount = 0;
-    Object.entries(categoryBadgeMap).forEach(([cat, badgeId]) => {
-      const s = stats[cat];
-      if (s && s.total >= 10 && (s.correct / s.total) >= 0.85) {
-        earnBadge(badgeId);
-        masteredCount++;
-      }
-    });
-    if (masteredCount >= Object.keys(categoryBadgeMap).length) {
-      earnBadge('all_master');
-    }
-  }, [earnBadge]);
-
-  const canAccessGameMaster = true;
+  // 管理画面はADMIN_EMAILSのGoogleアカウントのみ。実効的な保護は
+  // firestore.rules の isAdmin()（サーバー側）で行われ、ここはUI表示の制御。
+  const canAccessGameMaster = !!user?.email && ADMIN_EMAILS.includes(user.email);
 
   const handleOpenGameMaster = () => {
-    const pass = window.prompt('Game Master パスワードを入力:');
-    if (pass === GAMEMASTER_PASSWORD) setGameState('gamemaster');
+    if (canAccessGameMaster) setGameState('gamemaster');
   };
 
-  // ============================
-  // Progression
-  // ============================
-  const expForNextLevel = useCallback((level: number) => 100 + (level - 1) * 50, []);
+  // Progression (addExp / addBoostedMp / expForNextLevel) はストア側に移動
 
-  // Refs to break useCallback dependency cycle (prevents infinite re-render on level-up)
-  const playerLevelRef = useRef(playerLevel);
-  const playerExpRef = useRef(playerExp);
-  const mathPointsRef = useRef(mathPoints);
-  const ownedCardIdsRef = useRef(ownedCardIds);
-  useEffect(() => { playerLevelRef.current = playerLevel; }, [playerLevel]);
-  useEffect(() => { playerExpRef.current = playerExp; }, [playerExp]);
-  useEffect(() => { mathPointsRef.current = mathPoints; }, [mathPoints]);
-  useEffect(() => { ownedCardIdsRef.current = ownedCardIds; }, [ownedCardIds]);
 
-  /** MPブースターが有効な場合、MP報酬を倍増して加算 */
-  const addBoostedMp = useCallback((amount: number) => {
-    const boosted = activeBooster?.type === 'mp_booster' && Date.now() < (activeBooster?.expiresAt || 0)
-      ? Math.round(amount * activeBooster.multiplier)
-      : amount;
-    setMathPoints(p => p + boosted);
-    if (user && db) {
-      updateDoc(doc(db, 'users', user.uid), { mathPoints: increment(boosted) }).catch(() => {});
-    }
-  }, [activeBooster, user]);
-
-  const addExp = useCallback((amount: number) => {
-    const boostedAmount = expBoosterActive ? amount * 2 : amount;
-    if (expBoosterActive) {
-      setExpBoosterActive(false);
-    }
-    let currentExp = playerExpRef.current + boostedAmount;
-    let currentLevel = playerLevelRef.current;
-    const oldLevel = currentLevel;
-    let totalMpReward = 0;
-    while (currentExp >= expForNextLevel(currentLevel)) {
-      currentExp -= expForNextLevel(currentLevel);
-      currentLevel++;
-      totalMpReward += currentLevel * 100;
-    }
-    if (currentLevel > oldLevel) {
-      let newCard: ProblemCard | null = null;
-      const unowned = CARD_DEFINITIONS.filter(c => !ownedCardIdsRef.current.has(c.id));
-      if (unowned.length > 0) {
-        newCard = shuffleDeck(unowned)[0];
-        setOwnedCardIds(prev => new Set(prev).add(newCard!.id));
-      } else {
-        totalMpReward += 500;
-      }
-      setMathPoints(p => p + totalMpReward);
-      setLevelUpInfo({ oldLevel, newLevel: currentLevel, mpReward: totalMpReward, newCard });
-      setPlayerLevel(currentLevel);
-      saveUserToFirestore({ playerLevel: currentLevel, mathPoints: mathPointsRef.current + totalMpReward });
-    }
-    setPlayerExp(currentExp);
-    saveUserToFirestore({ playerExp: currentExp });
-  }, [expForNextLevel, saveUserToFirestore]);
-
-  // ============================
-  // Room / PvP watch
-  // ============================
-  // エビデンスA: Firestore query最適化 - finishedルームを除外
-  useEffect(() => {
-    if (gameState !== 'matchmaking' || !db) return;
-    const q = query(
-      collection(db, 'rooms'),
-      where('status', 'in', ['waiting', 'playing']),
-      orderBy('createdAt', 'desc'),
-      limit(50)
-    );
-    return onSnapshot(q, snap => {
-      const list: Room[] = [];
-      const now = Date.now();
-      snap.forEach(d => {
-        const data = d.data() as Room;
-        if (!data.roomId) data.roomId = d.id;
-        // クライアント側ゾンビ除去: 10分以上前のwaitingルーム
-        if (data.status === 'waiting' && data.createdAt) {
-          const createdMs = data.createdAt.toDate ? data.createdAt.toDate().getTime() : 0;
-          if (createdMs > 0 && now - createdMs > 10 * 60 * 1000) {
-            updateDoc(doc(db, 'rooms', d.id), { status: 'finished', winnerId: 'abandoned' }).catch(() => {});
-            return;
-          }
-        }
-        // クライアント側ゾンビ除去: playing状態で片方でも3分以上不活性、
-        // または両者とも2分以上不活性の場合はゾンビと判定
-        if (data.status === 'playing') {
-          const hostActive = data.hostLastActive?.toDate ? data.hostLastActive.toDate().getTime() : 0;
-          const guestActive = data.guestLastActive?.toDate ? data.guestLastActive.toDate().getTime() : 0;
-          const singleStaleMs = 3 * 60 * 1000; // 片方が3分不活性
-          const bothStaleMs = 2 * 60 * 1000;   // 両方が2分不活性
-          const hostStale = hostActive > 0 && now - hostActive > singleStaleMs;
-          const guestStale = guestActive > 0 && now - guestActive > singleStaleMs;
-          const bothInactive = hostActive > 0 && guestActive > 0
-            && now - hostActive > bothStaleMs && now - guestActive > bothStaleMs;
-          if (hostStale || guestStale || bothInactive) {
-            // 片方だけ不活性なら、活性側を勝者にする
-            let winnerId: string = 'abandoned';
-            if (hostStale && !guestStale) winnerId = 'guest';
-            else if (guestStale && !hostStale) winnerId = 'host';
-            updateDoc(doc(db, 'rooms', d.id), { status: 'finished', winnerId }).catch(() => {});
-            return;
-          }
-        }
-        list.push(data);
-      });
-      setRooms(list);
-    }, (error) => {
-      const msg = error?.message || '';
-      if (msg.includes('not found') || msg.includes('404') || error?.code === 'not-found') {
-        setFirestoreError('Firestoreデータベースが未作成です。Firebase Console で Firestore Database を有効化してください。');
-      } else if (msg.includes('offline') || msg.includes('unavailable')) {
-        setFirestoreError('サーバーに接続できません。インターネット接続を確認してください。');
-      } else {
-        setFirestoreError(`接続エラー: ${msg}`);
-      }
-    });
-  }, [gameState]);
-
-  // エビデンスA: Firebase公式 - ドキュメントライフサイクル管理
-  // ルーム離脱時にFirestoreステータスを更新し、ゾンビルームを防止
-  const leaveRoom = useCallback(async (roomId: string | null, wasHost: boolean) => {
-    if (!roomId || !db) return;
-    try {
-      const roomRef = doc(db, 'rooms', roomId);
-      const snap = await getDoc(roomRef);
-      if (!snap.exists()) return;
-      const data = snap.data() as Room;
-      if (data.status === 'finished') return;
-      if (data.status === 'waiting' && wasHost) {
-        // ホストが待機中に離脱 → ルームを終了
-        await updateDoc(roomRef, { status: 'finished', winnerId: 'abandoned' });
-      } else if (data.status === 'playing') {
-        // 対戦中に離脱 → 相手の勝利
-        await updateDoc(roomRef, {
-          status: 'finished',
-          winnerId: wasHost ? 'guest' : 'host',
-        });
-      }
-    } catch (e) { console.error('leaveRoom error:', e); }
-  }, []);
 
   const cleanupGameSession = useCallback((keepConn = false) => {
     if (!keepConn) {
@@ -984,6 +487,7 @@ const App: React.FC = () => {
       setCurrentRoomId(null);
       setIsHost(false);
       setOpponentDisconnected(false);
+      clearActivePvpSession();
     }
     processedMatchIdRef.current = null;
     setWinner(null);
@@ -996,66 +500,6 @@ const App: React.FC = () => {
     setTurnPhase('selecting_card');
   }, []);
 
-  // ブラウザ閉じ/タブ閉じ/iPad切替時のルームクリーンアップ
-  // pagehide: iOS Safari で beforeunload より信頼性が高い
-  // visibilitychange: iPad のホーム画面切替やアプリ切替を検知
-  useEffect(() => {
-    const markRoomFinished = () => {
-      const rid = currentRoomIdRef.current;
-      if (!rid || !db) return;
-      const roomRef = doc(db, 'rooms', rid);
-      updateDoc(roomRef, {
-        status: 'finished',
-        winnerId: isHostRef.current ? 'guest' : 'host',
-      }).catch(() => {});
-    };
-
-    // pagehide は iOS Safari でページ離脱時に発火する（beforeunloadより信頼性高）
-    const handlePageHide = (e: PageTransitionEvent) => {
-      // persisted=true (bfcache) の場合は戻ってくる可能性があるのでスキップ
-      if (!e.persisted) {
-        markRoomFinished();
-      }
-    };
-
-    // visibilitychange で iPad のアプリ切替/ホーム画面移動を検知
-    // hidden になってから一定時間戻らない場合のための保険タイマー
-    let hiddenTimer: NodeJS.Timeout | null = null;
-    const handleVisibilityChange = () => {
-      const rid = currentRoomIdRef.current;
-      if (!rid || !db) return;
-      if (document.hidden) {
-        // hidden になったら即座に lastActive を更新（最後の生存信号）
-        const field = isHostRef.current ? 'hostLastActive' : 'guestLastActive';
-        updateDoc(doc(db, 'rooms', rid), { [field]: serverTimestamp() }).catch(() => {});
-        // 60秒後もまだ hidden ならルームを終了（長時間離脱対策）
-        hiddenTimer = setTimeout(() => {
-          if (document.hidden && currentRoomIdRef.current === rid) {
-            markRoomFinished();
-          }
-        }, 60000);
-      } else {
-        // visible に戻ったらタイマーをキャンセル
-        if (hiddenTimer) { clearTimeout(hiddenTimer); hiddenTimer = null; }
-        // 復帰時にハートビートを即時送信
-        const field = isHostRef.current ? 'hostLastActive' : 'guestLastActive';
-        updateDoc(doc(db, 'rooms', rid), { [field]: serverTimestamp() }).catch(() => {});
-      }
-    };
-
-    // beforeunload も残す（デスクトップブラウザ用）
-    const handleBeforeUnload = () => markRoomFinished();
-
-    window.addEventListener('pagehide', handlePageHide);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('pagehide', handlePageHide);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      if (hiddenTimer) clearTimeout(hiddenTimer);
-    };
-  }, []);
 
   const listenToRoom = (roomId: string) => {
     if (!db) return;
@@ -1107,7 +551,7 @@ const App: React.FC = () => {
         if (data.battleType === 'speed_duel' && data.speedProblems) {
           // Speed Duel PvP: load problems from room and start
           setBattleType('speed_duel');
-          setSpeedProblems(data.speedProblems as Problem[]);
+          setSpeedProblems(data.speedProblems as SpeedProblem[]);
           setSpeedTotalRounds(data.speedTotalRounds || 5);
           setBattleFormat((data.speedFormat as BattleFormat) || 'best_of_5');
           setSpeedRound(1);
@@ -1117,11 +561,12 @@ const App: React.FC = () => {
           setSpeedOpponentAnswered(false);
           setSpeedRoundWinner(null);
           setSpeedGameResult(null);
+          speedRewardGrantedRef.current = false;
           setSpeedPhase('countdown');
           setGameState('speed_duel');
           setTimeout(() => {
             setSpeedPhase('answering');
-            setSpeedTimeLeft(30);
+            setSpeedTimeLeft(SPEED_DUEL_TIME_LIMIT_SEC);
           }, 2000);
         } else {
           setTimeout(() => {
@@ -1281,7 +726,8 @@ const App: React.FC = () => {
           base.speedTotalRounds = total;
           base.speedP1Score = 0;
           base.speedP2Score = 0;
-          base.speedProblems = problems.map(p => ({ type: p.type, data: p.data, answer: p.answer }));
+          // category/difficulty も保存（undefined不可のためnullに変換）— 相手側の学習記録・DDAに使う
+          base.speedProblems = problems.map(p => ({ type: p.type, data: p.data, answer: p.answer, category: p.category ?? null, difficulty: p.difficulty ?? null }));
           base.speedP1Answer = null;
           base.speedP2Answer = null;
           base.speedRoundWinner = null;
@@ -1306,6 +752,14 @@ const App: React.FC = () => {
       });
       setIsHost(result === 'host');
       setCurrentRoomId(roomId);
+      // 再接続用に対戦情報を保存（誤リロード対策）
+      saveActivePvpSession({
+        roomId,
+        isHost: result === 'host',
+        battleType: battleType || 'card_battle',
+        deckIds: pvpDeckRef.current.map(c => c.id),
+        savedAt: Date.now(),
+      });
     } catch (e: any) {
       const msg = e?.message || '';
       if (msg === 'ROOM_FULL') {
@@ -1323,21 +777,7 @@ const App: React.FC = () => {
 
   useEffect(() => { if (currentRoomId) listenToRoom(currentRoomId); }, [currentRoomId]);
 
-  // ハートビートパターン - 30秒ごとにlastActiveを更新（切断を素早く検知）
-  useEffect(() => {
-    if (!currentRoomId || !db || !user) return;
-    const field = isHostRef.current ? 'hostLastActive' : 'guestLastActive';
-    const interval = setInterval(() => {
-      updateDoc(doc(db, 'rooms', currentRoomId), {
-        [field]: serverTimestamp(),
-      }).catch(() => {});
-    }, 30000);
-    // 初回も即時更新
-    updateDoc(doc(db, 'rooms', currentRoomId), {
-      [field]: serverTimestamp(),
-    }).catch(() => {});
-    return () => clearInterval(interval);
-  }, [currentRoomId, user]);
+
 
   // ============================
   // Game Start
@@ -1401,12 +841,14 @@ const App: React.FC = () => {
   // ============================
   // Speed Duel Logic
   // ============================
-  const generateSpeedProblems = useCallback((subtopics: string[], count: number): Problem[] => {
+  const generateSpeedProblems = useCallback((subtopics: string[], count: number): SpeedProblem[] => {
     // Support both subtopic names (granular) and main category names (legacy)
     const subtopicSet = new Set(subtopics);
     const eligible = CARD_DEFINITIONS.filter(c => subtopicSet.has(c.category) || subtopicSet.has(c.mainCategory));
-    const shuffled = [...eligible].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, Math.min(count, shuffled.length)).map(c => c.problem);
+    const shuffled = shuffleDeck(eligible);
+    // 単元・難易度を保持（弱点分析/SRS記録・CPUのDDAに使用）
+    return shuffled.slice(0, Math.min(count, shuffled.length))
+      .map(c => ({ ...c.problem, category: c.category, difficulty: c.difficulty }));
   }, []);
 
   const getSpeedTotalRounds = useCallback((format: BattleFormat): number => {
@@ -1447,13 +889,14 @@ const App: React.FC = () => {
     setSpeedOpponentAnswered(false);
     setSpeedRoundWinner(null);
     setSpeedGameResult(null);
+    speedRewardGrantedRef.current = false;
     setSpeedPhase('countdown');
     setGameState('speed_duel');
 
     // Countdown then start
     setTimeout(() => {
       setSpeedPhase('answering');
-      setSpeedTimeLeft(30);
+      setSpeedTimeLeft(SPEED_DUEL_TIME_LIMIT_SEC);
     }, 1500);
   }, [generateSpeedProblems, getSpeedTotalRounds]);
 
@@ -1482,18 +925,26 @@ const App: React.FC = () => {
     return () => { if (speedTimerRef.current) clearInterval(speedTimerRef.current); };
   }, [gameState, speedPhase, speedRound]);
 
-  // Speed Duel CPU answer (simulated)
+  // Speed Duel CPU answer — DDA (動的難易度調整)
+  // プレイヤー自身の難易度別平均解答時間を基準にCPUの速度・正答率を決める
+  // (詳細は constants/gameBalance.ts を参照)
   useEffect(() => {
     if (gameState !== 'speed_duel' || speedPhase !== 'answering' || gameMode !== 'cpu') return;
-    // CPU answers after a random delay (difficulty-based)
     const problem = speedProblems[speedRound - 1];
     if (!problem) return;
-    const baseDelay = 5000 + Math.random() * 15000; // 5-20 seconds
+    const difficulty = problem.difficulty || 3;
+    const stats = userLevelStats[difficulty];
+    const baseTime = stats && stats.count >= SPEED_CPU.MIN_SAMPLE_COUNT
+      ? stats.avgTime
+      : difficulty * SPEED_CPU.FALLBACK_MS_PER_DIFFICULTY;
+    const jitter = SPEED_CPU.DELAY_JITTER_MIN
+      + Math.random() * (SPEED_CPU.DELAY_JITTER_MAX - SPEED_CPU.DELAY_JITTER_MIN);
+    const baseDelay = Math.max(SPEED_CPU.MIN_DELAY_MS, Math.min(SPEED_CPU.MAX_DELAY_MS, baseTime * jitter));
     speedCpuTimerRef.current = setTimeout(() => {
-      if (speedPhase !== 'answering') return;
+      // クロージャのspeedPhaseは古い値のため、refで現在のフェーズを判定する
+      if (speedPhaseRef.current !== 'answering') return;
       setSpeedOpponentAnswered(true);
-      // CPU has ~65% chance of correct answer
-      const cpuCorrect = Math.random() < 0.65;
+      const cpuCorrect = Math.random() < speedCpuAccuracy(difficulty);
       if (cpuCorrect && !speedPlayerAnswered) {
         // CPU wins this round
         if (speedTimerRef.current) clearInterval(speedTimerRef.current);
@@ -1503,7 +954,7 @@ const App: React.FC = () => {
       }
     }, baseDelay);
     return () => { if (speedCpuTimerRef.current) clearTimeout(speedCpuTimerRef.current); };
-  }, [gameState, speedPhase, speedRound, gameMode, speedProblems]);
+  }, [gameState, speedPhase, speedRound, gameMode, speedProblems, userLevelStats]);
 
   const handleSpeedAnswer = useCallback(async (answer: string) => {
     if (speedPhase !== 'answering' || speedPlayerAnswered) return;
@@ -1512,17 +963,23 @@ const App: React.FC = () => {
 
     setSpeedPlayerAnswered(true);
 
-    // Check correctness
-    const correctAnswer = problem.answer.toLowerCase().replace(/\s/g, '');
-    const userAnswer = answer.toLowerCase().replace(/\s/g, '');
-    const correctAnswers = correctAnswer.split(';').map(a => a.trim());
-    const isCorrect = correctAnswers.some(ca => ca === userAnswer);
+    // Check correctness (カードバトルと同一の採点ロジック)
+    const isCorrect = checkAnswer(answer, problem.answer, { multiple: !!(problem.data as any)?.multiple });
 
-    // Track for stats
-    sessionAnsweredRef.current += 1;
-    if (isCorrect) {
-      sessionCorrectRef.current += 1;
-      handleQuestProgress('correct');
+    // ゲーミフィケーション統合: チェイン・バッジ・クエスト・セッション統計
+    recordAnswerOutcome(isCorrect);
+    // 学習記録: 弱点分析と間隔反復(SRS)はカードバトル・練習モードと同様に蓄積する
+    // （旧形式PvPルームの問題には category が無いためガード）
+    if (problem.category) {
+      recordAttempt(problem.category, isCorrect);
+      if (!isCorrect) {
+        addIncorrectToSrs(
+          problem.category,
+          String((problem.data as any)?.question || '').slice(0, 50),
+          problem.answer,
+          problem.type
+        );
+      }
     }
 
     if (gameMode === 'pvp' && currentRoomId && db) {
@@ -1562,31 +1019,54 @@ const App: React.FC = () => {
       setSpeedPhase('round_result');
     }
     // If wrong, player can't retry - wait for CPU or timeout
-  }, [speedPhase, speedPlayerAnswered, speedProblems, speedRound, handleQuestProgress, gameMode, currentRoomId, db]);
+  }, [speedPhase, speedPlayerAnswered, speedProblems, speedRound, recordAnswerOutcome, gameMode, currentRoomId, db]);
 
   const handleSpeedNextRound = useCallback(() => {
-    const format = battleFormat;
-    const required = getSpeedRequiredWins(format);
-    const newPlayerScore = speedPlayerScore + (speedRoundWinner === 'player' ? 0 : 0); // already incremented
-    const newOpponentScore = speedOpponentScore + (speedRoundWinner === 'opponent' ? 0 : 0);
+    const required = getSpeedRequiredWins(battleFormat);
 
-    // Check if match is over
+    // PvP: ルームを終了状態にする（両クライアントが同じ値を書くため冪等）
+    const finishPvpMatch = (result: 'win' | 'lose' | 'draw') => {
+      if (gameMode !== 'pvp' || !currentRoomId || !db) return;
+      const myRole = isHostRef.current ? 'host' : 'guest';
+      const oppRole = isHostRef.current ? 'guest' : 'host';
+      const winnerId = result === 'draw' ? 'draw' : result === 'win' ? myRole : oppRole;
+      updateDoc(doc(db, 'rooms', currentRoomId), { status: 'finished', winnerId }).catch(() => {});
+      clearActivePvpSession();
+    };
+
+    // Check if match is over (スコアは回答時点で加算済み)
     if (required > 0) {
       // best-of-N: check if either player reached required wins
       if (speedPlayerScore >= required || speedOpponentScore >= required) {
-        setSpeedGameResult(speedPlayerScore >= required ? 'win' : 'lose');
+        const result = speedPlayerScore >= required ? 'win' : 'lose';
+        setSpeedGameResult(result);
         setSpeedPhase('match_over');
+        finishPvpMatch(result);
         return;
       }
     }
 
     // Check if all rounds played (master_duel or remaining rounds exhausted)
     if (speedRound >= speedTotalRounds) {
-      if (speedPlayerScore > speedOpponentScore) setSpeedGameResult('win');
-      else if (speedPlayerScore < speedOpponentScore) setSpeedGameResult('lose');
-      else setSpeedGameResult('draw');
+      const result = speedPlayerScore > speedOpponentScore ? 'win'
+        : speedPlayerScore < speedOpponentScore ? 'lose' : 'draw';
+      setSpeedGameResult(result);
       setSpeedPhase('match_over');
+      finishPvpMatch(result);
       return;
+    }
+
+    // PvP: 前ラウンドの解答・勝者をクリアして次ラウンドへ進める。
+    // 重要: これを行わないと speedRoundWinner がルームに残り続け、
+    // 2ラウンド目以降の解答トランザクションが常に早期returnして
+    // 誰も得点できなくなる（旧実装のバグ）。speedRound の保存は再接続にも使う
+    if (gameMode === 'pvp' && currentRoomId && db) {
+      updateDoc(doc(db, 'rooms', currentRoomId), {
+        speedRound: speedRound + 1,
+        speedRoundWinner: null,
+        speedP1Answer: null,
+        speedP2Answer: null,
+      }).catch(() => {});
     }
 
     // Next round
@@ -1597,9 +1077,31 @@ const App: React.FC = () => {
     setSpeedPhase('countdown');
     setTimeout(() => {
       setSpeedPhase('answering');
-      setSpeedTimeLeft(30);
-    }, 1500);
-  }, [battleFormat, speedPlayerScore, speedOpponentScore, speedRound, speedTotalRounds, getSpeedRequiredWins, speedRoundWinner]);
+      setSpeedTimeLeft(SPEED_DUEL_TIME_LIMIT_SEC);
+    }, SPEED_DUEL_COUNTDOWN_MS);
+  }, [battleFormat, speedPlayerScore, speedOpponentScore, speedRound, speedTotalRounds, getSpeedRequiredWins, gameMode, currentRoomId]);
+
+  // ============================
+  // スピード対戦の対戦報酬（マッチ終了時に1回だけ付与）
+  // 旧実装ではスピード対戦に報酬がなく、報酬ループから漏れていた
+  // ============================
+  const speedRewardGrantedRef = useRef(false);
+  useEffect(() => {
+    if (speedPhase !== 'match_over' || !speedGameResult) return;
+    if (speedRewardGrantedRef.current) return;
+    speedRewardGrantedRef.current = true;
+    const reward = SPEED_DUEL_REWARDS[speedGameResult];
+    addExp(reward.exp);
+    if (reward.mp > 0) addBoostedMp(reward.mp);
+    if (speedGameResult === 'win') {
+      incrementTotalWins();
+      saveUserToFirestore({ totalWins: increment(1), totalMatches: increment(1) });
+    } else {
+      saveUserToFirestore({ totalMatches: increment(1) });
+    }
+    if (gameMode === 'pvp') handleQuestProgress('pvp_match');
+    flushSessionData().catch(() => {});
+  }, [speedPhase, speedGameResult, gameMode, addExp, addBoostedMp, incrementTotalWins, saveUserToFirestore, handleQuestProgress, flushSessionData]);
 
   // ============================
   // Auto-draw helper
@@ -1657,6 +1159,95 @@ const App: React.FC = () => {
   }, []);
 
   // ============================
+  // PvP再接続
+  // 誤リロード後、保存済みセッションのルームがまだ進行中なら復帰を提案する
+  // ============================
+  const [resumeCandidate, setResumeCandidate] = useState<SavedPvpSession | null>(null);
+  const resumeCheckedRef = useRef(false);
+
+  useEffect(() => {
+    if (!user || !db || resumeCheckedRef.current) return;
+    resumeCheckedRef.current = true;
+    const saved = loadActivePvpSession();
+    if (!saved) return;
+    if (Date.now() - saved.savedAt > PVP_RESUME_MAX_AGE_MS) {
+      clearActivePvpSession();
+      return;
+    }
+    getDoc(doc(db, 'rooms', saved.roomId)).then(snap => {
+      if (!snap.exists()) { clearActivePvpSession(); return; }
+      const room = snap.data() as Room;
+      const isParticipant = room.hostId === user.uid || room.guestId === user.uid;
+      if (room.status !== 'playing' || !isParticipant) { clearActivePvpSession(); return; }
+      setResumeCandidate(saved);
+    }).catch(() => {});
+  }, [user]);
+
+  const performResume = useCallback(async (saved: SavedPvpSession) => {
+    setResumeCandidate(null);
+    if (!db) return;
+    try {
+      const snap = await getDoc(doc(db, 'rooms', saved.roomId));
+      if (!snap.exists()) { clearActivePvpSession(); return; }
+      const room = snap.data() as Room;
+      if (room.status !== 'playing') { clearActivePvpSession(); return; }
+
+      // isHostRef は startGame/リスナーが即座に参照するため、stateより先にrefを更新する
+      isHostRef.current = saved.isHost;
+      setIsHost(saved.isHost);
+      setGameMode('pvp');
+      processedMatchIdRef.current = null;
+
+      if (room.battleType === 'speed_duel' && room.speedProblems) {
+        setBattleType('speed_duel');
+        setSpeedProblems(room.speedProblems as SpeedProblem[]);
+        setSpeedTotalRounds(room.speedTotalRounds || 5);
+        setBattleFormat((room.speedFormat as BattleFormat) || 'best_of_5');
+        setSpeedRound(room.speedRound || 1);
+        setSpeedPlayerScore(saved.isHost ? (room.speedP1Score || 0) : (room.speedP2Score || 0));
+        setSpeedOpponentScore(saved.isHost ? (room.speedP2Score || 0) : (room.speedP1Score || 0));
+        setSpeedPlayerAnswered(!!(saved.isHost ? room.speedP1Answer : room.speedP2Answer));
+        setSpeedOpponentAnswered(!!(saved.isHost ? room.speedP2Answer : room.speedP1Answer));
+        setSpeedGameResult(null);
+        speedRewardGrantedRef.current = false;
+        if (room.speedRoundWinner) {
+          const mine = room.speedRoundWinner !== 'draw'
+            && ((room.speedRoundWinner === 'host') === saved.isHost);
+          setSpeedRoundWinner(room.speedRoundWinner === 'draw' ? 'draw' : mine ? 'player' : 'opponent');
+          setSpeedPhase('round_result');
+        } else {
+          setSpeedRoundWinner(null);
+          setSpeedPhase('answering');
+          setSpeedTimeLeft(SPEED_DUEL_TIME_LIMIT_SEC);
+        }
+        setCurrentRoomId(saved.roomId);
+        setGameState('speed_duel');
+      } else {
+        // カードバトル: HPはルームから復元、手札は引き直し
+        setBattleType('card_battle');
+        const deck = saved.deckIds
+          .map(id => CARD_DEFINITIONS.find(c => c.id === id))
+          .filter((c): c is ProblemCard => !!c);
+        const deckToUse = deck.length >= HAND_SIZE ? deck : shuffleDeck([...CARD_DEFINITIONS]).slice(0, DECK_SIZE);
+        pvpDeckRef.current = deckToUse;
+        startGame(deckToUse, false, room);
+        setCurrentRoomId(saved.roomId);
+        setGameState('in_game');
+        addLog('🔌 対戦に再接続しました（手札は引き直しです）');
+      }
+    } catch (e) {
+      console.error('PvP resume error:', e);
+      clearActivePvpSession();
+    }
+  }, [startGame, addLog]);
+
+  const dismissResume = useCallback(async (saved: SavedPvpSession) => {
+    setResumeCandidate(null);
+    // 破棄 = 投了扱い（相手の勝利でルームを終了）
+    await leaveRoom(saved.roomId, saved.isHost);
+  }, [leaveRoom]);
+
+  // ============================
   // Player Answer Handler
   // ============================
   const handlePlayerAnswer = (answer: string) => {
@@ -1668,17 +1259,11 @@ const App: React.FC = () => {
     const problemData = pcPlayedCard.problem.data as any;
     const correct = pcPlayedCard.problem.type === 'proof'
       ? true
-      : problemData?.multiple
-        ? normalizeAnswer(answer).split(',').sort().join(',') === normalizeAnswer(pcPlayedCard.problem.answer).split(',').sort().join(',')
-        : normalizeAnswer(answer) === normalizeAnswer(pcPlayedCard.problem.answer);
+      : checkAnswer(answer, pcPlayedCard.problem.answer, { multiple: !!problemData?.multiple });
 
     if (correct) {
       // Update DDA stats
-      const diff = pcPlayedCard.difficulty;
-      setUserLevelStats(prev => {
-        const s = prev[diff] || { avgTime: 20000, count: 0 };
-        return { ...prev, [diff]: { avgTime: (s.avgTime * s.count + solveTime) / (s.count + 1), count: s.count + 1 } };
-      });
+      recordSolveTime(pcPlayedCard.difficulty, solveTime);
       // スピードバッジ: 3秒以内正解
       if (solveTime < 3000) earnBadge('speed_demon');
     }
@@ -1903,24 +1488,15 @@ const App: React.FC = () => {
           setWinner(`勝利！\nおめでとう！${winDetail}`);
           addExp(500);
           addBoostedMp(300);
-          setTotalWins(w => {
-            const next = w + 1;
-            saveUserToFirestore({ totalWins: increment(1), totalMatches: increment(1), [formatWinKey]: increment(1), [formatMatchKey]: increment(1) });
-            if (gameMode === 'cpu') earnBadge('first_cpu_win');
-            else earnBadge('first_pvp_win');
-            if (playerHP >= INITIAL_HP) earnBadge('perfect_battle');
-            if (playerHP <= 5) earnBadge('comeback');
-            checkCategoryMasterBadges();
-            // 称号条件チェック
-            checkTitleConditions({
-              totalCorrectAnswers,
-              totalWins: next,
-              loginStreak,
-              playerLevel,
-              earnedBadgeIds,
-            });
-            return next;
-          });
+          incrementTotalWins();
+          saveUserToFirestore({ totalWins: increment(1), totalMatches: increment(1), [formatWinKey]: increment(1), [formatMatchKey]: increment(1) });
+          if (gameMode === 'cpu') earnBadge('first_cpu_win');
+          else earnBadge('first_pvp_win');
+          if (playerHP >= INITIAL_HP) earnBadge('perfect_battle');
+          if (playerHP <= 5) earnBadge('comeback');
+          checkCategoryMasterBadges();
+          // 称号条件チェック (totalWins はストアで加算済み)
+          checkTitleConditions();
         } else {
           const loseDetail = battleFormat !== 'master_duel' ? `\n${newPlayerRoundWins}-${newPcRoundWins} (${formatLabel})` : '';
           setWinner(`敗北...\n次こそ勝とう！${loseDetail}`);
@@ -2049,10 +1625,17 @@ const App: React.FC = () => {
       case 'practice_mode':
         return (
           <PracticeMode
-            onSessionComplete={pts => { setMathPoints(p => p + pts); setGameState('main_menu'); }}
+            onSessionComplete={pts => { addMathPoints(pts); setGameState('main_menu'); }}
             db={db}
             user={user}
             studentProfile={studentProfile}
+          />
+        );
+
+      case 'review_mode':
+        return (
+          <ReviewMode
+            onExit={pts => { if (pts > 0) addMathPoints(pts); setGameState('main_menu'); }}
           />
         );
 
@@ -2139,26 +1722,7 @@ const App: React.FC = () => {
         return (
           <CardShop
             mathPoints={mathPoints}
-            onBuyPack={(m, cost, _t) => {
-              const cards = CARD_DEFINITIONS.filter(c => !ownedCardIds.has(c.id) && c.mainCategory === m);
-              if (mathPoints < cost || cards.length === 0) return cards.length === 0 ? [] : null;
-              // エビデンスA: 可変報酬スケジュール — 3〜6枚ランダム + 20%でCRITICAL!（Skinner 1938）
-              const isCritical = Math.random() < 0.2;
-              const baseCount = 3 + Math.floor(Math.random() * 2); // 3 or 4
-              const packCount = Math.min(cards.length, isCritical ? baseCount + 2 : baseCount);
-              const newCards = [...cards].sort(() => Math.random() - 0.5).slice(0, packCount);
-              setMathPoints(p => p - cost);
-              setOwnedCardIds(prev => {
-                const next = new Set(prev);
-                newCards.forEach(c => next.add(c.id));
-                return next;
-              });
-              saveUserToFirestore({
-                mathPoints: mathPoints - cost,
-                ownedCardIds: arrayUnion(...newCards.map(c => c.id)),
-              });
-              return newCards;
-            }}
+            onBuyPack={(m, cost, _t) => buyCardPack(m, cost)}
             onExit={() => setGameState('main_menu')}
           />
         );
@@ -2251,13 +1815,11 @@ const App: React.FC = () => {
           <TutorialBattle
             onComplete={() => {
               setTutorialDone(true);
-              localStorage.setItem('bm_tutorial_done', '1');
               earnBadge('tutorial_clear');
               setGameState('main_menu');
             }}
             onSkip={() => {
               setTutorialDone(true);
-              localStorage.setItem('bm_tutorial_done', '1');
               setGameState('main_menu');
             }}
           />
@@ -2336,6 +1898,32 @@ const App: React.FC = () => {
             onEquipTheme={setEquippedTheme}
             onClose={() => setShowItemShop(false)}
           />
+        )}
+        {/* PvP再接続プロンプト */}
+        {resumeCandidate && (gameState === 'main_menu' || gameState === 'login_screen') && (
+          <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+            <div className="max-w-sm w-full bg-slate-900 border border-cyan-700/50 rounded-2xl p-6 text-center">
+              <p className="text-3xl mb-3">🔌</p>
+              <h2 className="text-lg font-bold text-white mb-2">進行中の対戦があります</h2>
+              <p className="text-xs text-gray-400 mb-6">
+                {resumeCandidate.battleType === 'speed_duel' ? 'スピード対戦' : 'カードバトル'}の途中で切断されました。再接続しますか？
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => performResume(resumeCandidate)}
+                  className="flex-1 btn-tactical py-3 rounded-xl font-bold"
+                >
+                  再接続する
+                </button>
+                <button
+                  onClick={() => dismissResume(resumeCandidate)}
+                  className="flex-1 border border-gray-600 text-gray-400 hover:text-white py-3 rounded-xl font-bold transition-colors"
+                >
+                  破棄（投了）
+                </button>
+              </div>
+            </div>
+          </div>
         )}
         {showNewYearPrompt && studentProfile && (
           <NewYearPrompt

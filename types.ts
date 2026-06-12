@@ -383,6 +383,16 @@ export interface Problem {
 
 export type ProblemSet = Record<string, Problem[]>;
 
+/**
+ * スピード対戦用の問題: 出題元カードの単元・難易度を保持する。
+ * 単元は弱点分析・間隔反復(SRS)の記録に、難易度はCPUのDDAに使う。
+ * (旧形式のPvPルームには無いフィールドのため optional)
+ */
+export interface SpeedProblem extends Problem {
+  category?: string;
+  difficulty?: number;
+}
+
 // Replaces the old CardData
 export interface ProblemCard {
   id: number;
@@ -394,7 +404,7 @@ export interface ProblemCard {
 }
 
 export type TurnPhase = 'selecting_card' | 'solving_problem' | 'round_end' | 'game_over' | 'waiting_for_opponent';
-export type GameState = 'login_screen' | 'main_menu' | 'deck_building' | 'in_game' | 'end' | 'practice_mode' | 'card_shop' | 'matchmaking' | 'gamemaster' | 'tutorial' | 'speed_duel_setup' | 'speed_duel';
+export type GameState = 'login_screen' | 'main_menu' | 'deck_building' | 'in_game' | 'end' | 'practice_mode' | 'review_mode' | 'card_shop' | 'matchmaking' | 'gamemaster' | 'tutorial' | 'speed_duel_setup' | 'speed_duel';
 export type TurnInitiative = 'player' | 'pc';
 
 // For FillInProofProblemView to connect with a virtual keypad in the future
